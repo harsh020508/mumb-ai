@@ -1,0 +1,141 @@
+# mumbai (Mumbai) — Census 2011 + 2024-26 current-events profile.
+slug = "mumbai"
+display = "mumbai"
+prompt_name = "Mumbai"
+demonym = "Mumbaikar"
+pumas = [2700100, 2700101, 2700102, 2700103, 2700104, 2700105, 2700106, 2700107, 2700108, 2700109, 2700110, 2700111, 2700112, 2700113, 2700114, 2700115, 2700116, 2700117, 2700118, 2700119, 2700120, 2700121, 2700122, 2700123]
+pums_path = "data/mumbai_pums.csv"
+tiles_path = "server_tiles/mumbai.db"
+religion_weights = [0.033, 0.002, 0.003, 0.005, 0.002, 0.2065, 0.0485, 0.6599, 0.041]
+
+[politics]
+economic_base = -0.25
+social_base = -0.1
+trust_base = -0.15
+change_base = 0.15
+s_housing = 0.95
+s_crime = 0.6
+s_homeless = 0.8
+s_cost = 0.95
+s_environment = 0.6
+s_immigration = 0.75
+vote_facts = "Mumbai is India's financial capital and the wealthiest urban agglomeration in the country, with 18 million residents crammed into roughly 600 square kilometres. It is a hyper-dense, high-cost metropolis where housing affordability is the single most explosive political issue: average flats cost Rs 3 crore-plus and rents have spiralled, while 41% of the population lives in slums and migrant workers form the city's labour backbone. The electorate is heavily working-class and pragmatic, historically rewarding pro-poor platforms (Shiv Sena's original sons-of-the-soil nativism, later Maha Vikas Aghadi) yet also responding to infrastructure delivery, coastal-road and metro projects, and flood resilience after successive devastating monsoons. Mumbai's residents are acutely sensitive to the cost of living, civic chaos, corruption scandals, and the failure of trains and suburban rail to keep pace with growth. Religion and community identity (Hindu-Marathi, Gujarati, Muslim, Buddhist, Jain, South Indian) shape politics, but bread-and-butter economic anxiety dominates vote choice. Immigration from Bihar, UP, and across Maharashtra is highly salient: native-Marathi nativist sentiment clashes with the city's cosmopolitan openness."
+belief_facts = "India holds first-past-the-post elections; Maharashtra state assembly and Mumbai municipal (BMC) elections are conducted under this system with a single-member, one-person-one-vote framework. The national electorate is 18+, with turnout varying sharply by age and class. Mumbai has a large Buddhist-Ambedkarite community whose voters lean firmly toward Dalit-rights and social-justice parties."
+
+[work]
+downtown_puma = 2700105
+downtown_share = 0.35
+
+[[neighborhoods]]
+puma = 2700100
+label = "Churchgate / Fort / Colaba (South Mumbai CBD)"
+[[neighborhoods]]
+puma = 2700101
+label = "Nariman Point / Marine Drive / Walkeshwar"
+[[neighborhoods]]
+puma = 2700102
+label = "Tardeo / Byculla / Lower Parel"
+[[neighborhoods]]
+puma = 2700103
+label = "Dadar / Shivaji Park / Mahim"
+[[neighborhoods]]
+puma = 2700104
+label = "Worli / Prabhadevi / Haji Ali"
+[[neighborhoods]]
+puma = 2700105
+label = "Bandra East / Khar / Santacruz"
+[[neighborhoods]]
+puma = 2700106
+label = "Andheri East / Vile Parle / Juhu"
+[[neighborhoods]]
+puma = 2700107
+label = "Goregaon / Malad / Kandivali (Western Suburbs)"
+[[neighborhoods]]
+puma = 2700108
+label = "Borivali / Dahisar / Mira-Bhayandar fringe"
+[[neighborhoods]]
+puma = 2700109
+label = "Thane Creek / Mulund / Bhandup"
+[[neighborhoods]]
+puma = 2700110
+label = "Chembur / Deonar / Mankhurd"
+[[neighborhoods]]
+puma = 2700111
+label = "Ghatkopar / Vikhroli / Powai"
+[[neighborhoods]]
+puma = 2700112
+label = "Kurla / Saki Naka / Marol"
+[[neighborhoods]]
+puma = 2700113
+label = "Wadala / Matunga / Sion"
+[[neighborhoods]]
+puma = 2700114
+label = "Dharavi / Bandra-Kurla Complex"
+[[neighborhoods]]
+puma = 2700115
+label = "Mazgaon / Sewri / Cotton Green"
+[[neighborhoods]]
+puma = 2700116
+label = "Colaba Causeway / Navy Nagar"
+[[neighborhoods]]
+puma = 2700117
+label = "Malabar Hill / Walkeshwar / Breach Candy"
+[[neighborhoods]]
+puma = 2700118
+label = "Antop Hill / Wadala East / Anik"
+[[neighborhoods]]
+puma = 2700119
+label = "Kanjurmarg / Bhandup East"
+[[neighborhoods]]
+puma = 2700120
+label = "Jogeshwari / Oshiwara / Lokhandwala"
+[[neighborhoods]]
+puma = 2700121
+label = "Versova / Seven Bungalows / Andheri West"
+[[neighborhoods]]
+puma = 2700122
+label = "Marine Lines / Grant Road / Girgaon"
+[[neighborhoods]]
+puma = 2700123
+label = "Pydhonie / Mandvi / South Mumbai old city"
+
+[[centroids]]
+puma = 2700100
+cx = 40
+cy = 50
+radius = 12
+[[centroids]]
+puma = 2700105
+cx = 42
+cy = 62
+radius = 14
+[[centroids]]
+puma = 2700106
+cx = 38
+cy = 70
+radius = 16
+[[centroids]]
+puma = 2700107
+cx = 30
+cy = 78
+radius = 18
+[[centroids]]
+puma = 2700108
+cx = 20
+cy = 88
+radius = 18
+[[centroids]]
+puma = 2700110
+cx = 52
+cy = 72
+radius = 14
+[[centroids]]
+puma = 2700111
+cx = 58
+cy = 66
+radius = 16
+[[centroids]]
+puma = 2700114
+cx = 45
+cy = 58
+radius = 10

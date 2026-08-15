@@ -1,0 +1,84 @@
+# jaipur (Jaipur) — Census 2011 + 2024-26 current-events profile.
+slug = "jaipur"
+display = "jaipur"
+prompt_name = "Jaipur"
+demonym = "Jaipuri"
+pumas = [800100, 800101, 800102, 800103, 800104, 800105, 800106, 800107, 800108, 800109]
+pums_path = "data/jaipur_pums.csv"
+tiles_path = "server_tiles/jaipur.db"
+religion_weights = [0.005, 0.002, 0.002, 0.005, 0.0, 0.11, 0.002, 0.845, 0.029]
+
+[politics]
+economic_base = -0.05
+social_base = -0.1
+trust_base = -0.1
+change_base = 0.15
+s_housing = 0.7
+s_crime = 0.55
+s_homeless = 0.5
+s_cost = 0.8
+s_environment = 0.6
+s_immigration = 0.4
+vote_facts = "Jaipur, the Pink City and capital of Rajasthan, is a 3 million-person metropolis that combines a deep Rajput and Marwari trading heritage with rapid modern growth as the tourism and textile-and-gems gateway of the desert state. Rajasthan politics is a two-party seesaw between the BJP and Congress, and the 2026 assembly elections are approaching with the BJP's Bhajan Lal Sharma government facing anti-incumbency after a term punctuated by law-and-order incidents, farmer unrest, and the perennial shortage crises. Jaipur's urban electorate — traders, government servants, textile and gem artisans, and a growing student population — swings with national moods but is unusually sensitive to local delivery: water rationing as Bisalpur dam runs dry, tourism revenue, and the health of its handicraft economy. Caste arithmetic (Jats, Rajputs, Gurjars, and the large Meghwal/SC population) and religion (roughly 11% Muslim in the city) structure the vote, while the city's middle class and youth lean pragmatically between the two main national alliances."
+belief_facts = "Rajasthan holds first-past-the-post elections to a 200-seat Legislative Assembly; Jaipur's urban constituencies are among the state's highest-turnout. India's 18+ franchise applies. The state's chronic water scarcity and recurring drought politics are perennial campaign themes."
+
+[work]
+downtown_puma = 800103
+downtown_share = 0.4
+
+[[neighborhoods]]
+puma = 800100
+label = "Old City / Walled City / Johari Bazaar"
+[[neighborhoods]]
+puma = 800101
+label = "C-Scheme / Ashok Nagar / Panch Batti"
+[[neighborhoods]]
+puma = 800102
+label = "Malviya Nagar / Bapu Nagar / Tonk Road"
+[[neighborhoods]]
+puma = 800103
+label = "Civil Lines / Lal Kothi / Jhalana"
+[[neighborhoods]]
+puma = 800104
+label = "Mansarovar / Vaishali Nagar / Jhotwara"
+[[neighborhoods]]
+puma = 800105
+label = "Amer / Chomu Road / North Jaipur"
+[[neighborhoods]]
+puma = 800106
+label = "Sanganer / Sitapura / Agra Road"
+[[neighborhoods]]
+puma = 800107
+label = "Galta / Ramganj / Madho Nagar"
+[[neighborhoods]]
+puma = 800108
+label = "Vidhyadhar Nagar / Jagatpura / Mahal Road"
+[[neighborhoods]]
+puma = 800109
+label = "Ajmer Road / Transport Nagar / Sodala"
+
+[[centroids]]
+puma = 800100
+cx = 45
+cy = 48
+radius = 14
+[[centroids]]
+puma = 800103
+cx = 50
+cy = 52
+radius = 12
+[[centroids]]
+puma = 800104
+cx = 55
+cy = 58
+radius = 16
+[[centroids]]
+puma = 800106
+cx = 48
+cy = 62
+radius = 16
+[[centroids]]
+puma = 800108
+cx = 60
+cy = 55
+radius = 16

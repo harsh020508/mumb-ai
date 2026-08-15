@@ -1,0 +1,42 @@
+# mumbai (Mumbai) — UTM Zone 43N.
+
+[pipeline]
+meters_per_cell = 2.0
+chunk_meters    = 250.0
+lod_levels      = 6
+water_max_elev_m = 3.0
+
+[crs]
+utm_epsg = "EPSG:32643"
+
+[bbox_wgs84]
+west  = 72.77
+south = 18.87
+east  = 72.99
+north = 19.28
+
+[land_ref]
+lon = 72.8777
+lat = 19.0760
+
+[paths]
+osm_pbf   = "data/mumbai.osm.pbf"
+dem_tif   = "data/mumbai_dem.tif"
+output_db = "artifacts/tiles_mumbai.db"
+mapping_json = "artifacts/mapping_mumbai.json"
+
+[elevation]
+walkable_threshold_m = 1.5
+flatten_buildings    = true
+
+[collision]
+building_floor_blocked = true
+
+[atlas]
+tile_width  = 32
+tile_height = 32
+columns     = 47
+path = "assets/atlas.png"
+
+[verify]
+test_chunks = []

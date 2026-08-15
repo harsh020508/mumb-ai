@@ -1,0 +1,41 @@
+# bangalore (Bruhat Bengaluru Mahanagara Palike) — UTM Zone 43N.
+
+[pipeline]
+meters_per_cell = 2.0
+chunk_meters    = 250.0
+lod_levels      = 6
+
+[crs]
+utm_epsg = "EPSG:32643"
+
+[bbox_wgs84]
+west  = 77.46
+south = 12.83
+east  = 77.78
+north = 13.14
+
+[land_ref]
+lon = 77.5946
+lat = 12.9716
+
+[paths]
+osm_pbf   = "data/bangalore.osm.pbf"
+dem_tif   = "data/bangalore_dem.tif"
+output_db = "artifacts/tiles_bangalore.db"
+mapping_json = "artifacts/mapping_bangalore.json"
+
+[elevation]
+walkable_threshold_m = 1.5
+flatten_buildings    = true
+
+[collision]
+building_floor_blocked = true
+
+[atlas]
+tile_width  = 32
+tile_height = 32
+columns     = 47
+path = "assets/atlas.png"
+
+[verify]
+test_chunks = []

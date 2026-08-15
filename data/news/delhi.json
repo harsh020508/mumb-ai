@@ -1,0 +1,54 @@
+{
+  "city": "delhi",
+  "date": "2026-07-31",
+  "articles": [
+    {
+      "headline": "BJP sweeps Delhi Assembly 2025; Rekha Gupta becomes first woman CM from BJP",
+      "summary": "BJP won 48 out of 70 seats in the February 2025 Delhi elections, ending AAP's decade-long rule. AAP was reduced to just 22 seats. Rekha Gupta from Shalimar Bagh was sworn in as Chief Minister. Arvind Kejriwal's personal defeat in New Delhi constituency marked the end of AAP's dominance in the capital.",
+      "topic": "politics",
+      "salience": "none",
+      "url": "https://en.wikipedia.org/wiki/2025_Delhi_Legislative_Assembly_election",
+      "date": "2025-02-08"
+    },
+    {
+      "headline": "NEET 2026 scandal triggers massive student protests across Delhi",
+      "summary": "Tens of thousands of students occupied Jantar Mantar and marched to Parliament demanding the resignation of Education Minister Dharmendra Pradhan after the NEET-UG 2026 paper leak was confirmed. The protest — dubbed Sansad Chalo — paralyzed central Delhi for three days. Pradhan resigned on June 28, 2026.",
+      "topic": "education",
+      "salience": "youth",
+      "url": "https://en.wikipedia.org/wiki/2026_NEET_controversy",
+      "date": "2026-06-25"
+    },
+    {
+      "headline": "Delhi air quality hits 'hazardous' levels for 18 consecutive days in November",
+      "summary": "Delhi recorded its worst air quality crisis since 2023, with AQI readings exceeding 500 across all monitoring stations for 18 consecutive days in November 2025. The Supreme Court-imposed GRAP-IV restrictions were triggered. Stubble burning in Punjab and Haryana combined with vehicle emissions and construction dust were blamed.",
+      "topic": "environment",
+      "salience": "cost",
+      "url": "https://cpcb.nic.in/",
+      "date": "2025-11-20"
+    },
+    {
+      "headline": "Yamuna River cleanup deadline missed again; deadline extended to 2027",
+      "summary": "The National Green Tribunal extended the Yamuna river cleanup deadline to 2027 after the Delhi government admitted the original 2025 target was unachievable. Only 35% of sewage treatment capacity has been upgraded. Political blame-shifting between BJP state government and Central government continues.",
+      "topic": "environment",
+      "salience": "cost",
+      "url": "https://ngthindustrialtree.ngt.gov.in/",
+      "date": "2026-01-15"
+    },
+    {
+      "headline": "Delhi Metro Phase 4 expansion: three new corridors operational",
+      "summary": "Delhi Metro opened three Phase 4 corridors — Janakpuri West-RK Ashram, Mukundpur-Maujpur, and Aerocity-Tughlaqabad — adding 65 km to the network. The expansion brings the total Delhi Metro network to 395 km, making it the world's second-largest metro network after Shanghai.",
+      "topic": "transit",
+      "salience": "none",
+      "url": "https://delhimetrorail.com/",
+      "date": "2026-05-10"
+    },
+    {
+      "headline": "Supreme Court upholds CAA but strikes down NRC-linked provisions",
+      "summary": "In a 4-1 verdict, the Supreme Court upheld the core of the Citizenship Amendment Act as constitutional but struck down provisions linking it to the National Register of Citizens (NRC), ruling that CAA cannot be used as a tool for exclusion of existing Indian citizens. The verdict has massive implications for Delhi's diverse population.",
+      "topic": "politics",
+      "salience": "community",
+      "url": "https://en.wikipedia.org/wiki/Citizenship_(Amendment)_Act,_2019",
+      "date": "2026-03-10"
+    }
+  ]
+}

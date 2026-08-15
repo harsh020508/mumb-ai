@@ -20,6 +20,7 @@ cache.db
 /data/raw
 /data/*.osm.pbf
 /data/*_dem.tif
+/data/planet_*-geopackage/
 # per-city map build outputs (baked into the deploy image, not git)
 /artifacts
 /mapping.json
@@ -29,3 +30,7 @@ mapping_*.json
 /verify_out
 /crates/sim-core/tiles.db
 data/*.aux.xml
+/tools/proj_build
+/target/sqlite3
+/tools/cmake
+build_log.txt

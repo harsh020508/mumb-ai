@@ -817,7 +817,7 @@ pub fn build_state(tiles_path: &str, cache_path: Option<&str>, state_db: &str) -
     );
 
     // Other cities load when their data/cities/<slug>.toml + tiles.db + PUMS subset exist.
-    for slug in ["neu_york", "synth_la", "cybercago", "simami"] {
+    for slug in ["neu_york", "synth_la", "cybercago", "simami", "mumbai", "delhi", "kolkata", "bangalore", "jaipur"] {
         match load_city_runtime(slug) {
             Ok(rt) => {
                 tracing::info!("loaded city {slug}: {} PUMS records", rt.records.len());

@@ -1,0 +1,87 @@
+# delhi (Delhi) — Census 2011 + 2024-26 current-events profile.
+slug = "delhi"
+display = "delhi"
+prompt_name = "Delhi"
+demonym = "Delhiite"
+pumas = [700700, 700701, 700702, 700703, 700704, 700705, 700706, 700707, 700708, 700709, 700710]
+pums_path = "data/delhi_pums.csv"
+tiles_path = "server_tiles/delhi.db"
+religion_weights = [0.004, 0.002, 0.002, 0.008, 0.002, 0.129, 0.002, 0.817, 0.034]
+
+[politics]
+economic_base = 0.0
+social_base = 0.15
+trust_base = -0.1
+change_base = 0.25
+s_housing = 0.85
+s_crime = 0.7
+s_homeless = 0.75
+s_cost = 0.85
+s_environment = 0.9
+s_immigration = 0.8
+vote_facts = "Delhi is the national capital, the seat of central power, and a politically hyper-sensitive metro of 16.8 million within the NCT plus a wider urban agglomeration of over 21 million. Roughly 45% of the population are first-generation migrants from UP, Bihar, Haryana, and Punjab, making nativity, language, and caste pivotal in local politics. Delhi has been the arena for a dramatic churn in 2025: after a decade of Aam Aadmi Party rule under Arvind Kejriwal, the February 2025 assembly election delivered a BJP landslide of 48 of 70 seats, reducing AAP to 22 and installing Rekha Gupta as Chief Minister — the BJP's first Delhi government in 27 years. The AAP brand of free electricity, free bus rides, school and mohalla-clinic makeovers lost out to national issues, welfare fatigue, and corruption allegations. Delhi's electorate remains deeply polarized: Punjabi and Punjabi-adjacent communities, Dalits, and government employees lean in shifting directions, while Muslim voters (nearly 13%) have historically consolidated heavily against the BJP. Two issues dominate the salience landscape: toxic air (annual AQI crises, GRAP restrictions) and the perennial water shortage, alongside national controversies like the Citizenship Amendment Act (which the Supreme Court upheld in 2026 with NRC restrictions), the NEET paper-leak scandals that outraged student voters, and soaring cost of living."
+belief_facts = "Delhi has a unicameral Legislative Assembly of 70 seats elected first-past-the-post; national Lok Sabha seats are contested in the same capital territory. Elections run on India's 18+ franchise with no separate registration for the capital's large migrant workforce, many of whom vote in their home states. Municipal (MCD) elections are also hotly contested."
+
+[work]
+downtown_puma = 700704
+downtown_share = 0.4
+
+[[neighborhoods]]
+puma = 700700
+label = "North Delhi / Civil Lines / Model Town"
+[[neighborhoods]]
+puma = 700701
+label = "Shahdara / East Delhi industrial belt"
+[[neighborhoods]]
+puma = 700702
+label = "North East Delhi / Seelampur / Jamia Nagar fringe"
+[[neighborhoods]]
+puma = 700703
+label = "Central Delhi / Chandni Chowk / Daryaganj"
+[[neighborhoods]]
+puma = 700704
+label = "New Delhi / Connaught Place / Lutyens Zone"
+[[neighborhoods]]
+puma = 700705
+label = "South Delhi / Saket / Hauz Khas / Mehrauli"
+[[neighborhoods]]
+puma = 700706
+label = "South West Delhi / Dwarka / Najafgarh"
+[[neighborhoods]]
+puma = 700707
+label = "West Delhi / Punjabi Bagh / Rajouri Garden"
+[[neighborhoods]]
+puma = 700708
+label = "North West Delhi / Rohini / Pitampura"
+[[neighborhoods]]
+puma = 700709
+label = "East Delhi / Preet Vihar / Laxmi Nagar"
+[[neighborhoods]]
+puma = 700710
+label = "New Delhi Railway fringe / Paharganj / Karol Bagh"
+
+[[centroids]]
+puma = 700700
+cx = 30
+cy = 30
+radius = 14
+[[centroids]]
+puma = 700704
+cx = 40
+cy = 50
+radius = 12
+[[centroids]]
+puma = 700705
+cx = 38
+cy = 62
+radius = 16
+[[centroids]]
+puma = 700707
+cx = 20
+cy = 40
+radius = 14
+[[centroids]]
+puma = 700708
+cx = 22
+cy = 24
+radius = 16

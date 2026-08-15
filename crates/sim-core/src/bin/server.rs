@@ -4,6 +4,19 @@
 use simfrancisco::api;
 use std::net::SocketAddr;
 
+const CITIES: [(&str, &str); 10] = [
+    ("sf", "San Francisco"),
+    ("neu_york", "New York City"),
+    ("synth_la", "Los Angeles"),
+    ("cybercago", "Chicago"),
+    ("simami", "Miami"),
+    ("mumbai", "Mumbai"),
+    ("delhi", "Delhi"),
+    ("kolkata", "Kolkata"),
+    ("bangalore", "Bangalore"),
+    ("jaipur", "Jaipur"),
+];
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     simfrancisco::load_dotenv(".env");

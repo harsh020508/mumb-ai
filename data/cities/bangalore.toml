@@ -1,0 +1,78 @@
+# bangalore (Bangalore) — Census 2011 + 2024-26 current-events profile.
+slug = "bangalore"
+display = "bangalore"
+prompt_name = "Bangalore"
+demonym = "Bangalorean"
+pumas = [2900100, 2900101, 2900102, 2900103, 2900104, 2900105, 2900106, 2900107]
+pums_path = "data/bangalore_pums.csv"
+tiles_path = "server_tiles/bangalore.db"
+religion_weights = [0.04, 0.005, 0.005, 0.015, 0.0, 0.139, 0.005, 0.789, 0.002]
+
+[politics]
+economic_base = 0.2
+social_base = 0.15
+trust_base = 0.05
+change_base = 0.2
+s_housing = 0.8
+s_crime = 0.5
+s_homeless = 0.45
+s_cost = 0.8
+s_environment = 0.75
+s_immigration = 0.85
+vote_facts = "Bangalore — India's Silicon Valley — is the country's fastest-growing major metropolis, an 8.4-million-person city (12 million agglomeration) where the IT economy, startup culture, and a young, migrant-heavy, English-speaking workforce have reshaped politics. About 40% of residents were born outside Karnataka, and roughly a third of the tech workforce is from other states, creating a powerful cosmopolitan, urban-progressive bloc that is less deferential to regional identity and more responsive to governance quality, infrastructure, and livability. The 2026 Karnataka assembly elections are a high-stakes test: Congress governs the state under Siddaramaiah while the BJP — which dominated Bangalore's urban constituencies during its 2019-2023 stint — fights to reclaim the capital's 28 assembly seats, where guzzler-vs-bakery and IT-vs-agrarian divides are sharp. Bangalore's voters are famously pragmatic: they punished the BJP on corruption in 2023, and their swing behaviour has repeatedly decided Karnataka's state outcome. The dominant salience issues are catastrophic traffic congestion (ranked world's worst), soaring real-estate and rental costs, water scarcity after the 2024-25 Cauvery crisis, and the tech sector's AI-driven layoffs — which have injected anxiety into the city's young, aspirational electorate."
+belief_facts = "Karnataka holds first-past-the-post elections to a 224-seat Legislative Assembly; Bangalore's constituencies are the most urban and highest-turnout-in-information-sectors in the state. India's 18+ franchise applies. The Cauvery water dispute with Tamil Nadu remains a perennial electoral flashpoint in the state."
+
+[work]
+downtown_puma = 2900100
+downtown_share = 0.45
+
+[[neighborhoods]]
+puma = 2900100
+label = "Central Business District / MG Road / Shivajinagar"
+[[neighborhoods]]
+puma = 2900101
+label = "Indiranagar / HAL / Domlur (IT corridor)"
+[[neighborhoods]]
+puma = 2900102
+label = "Koramangala / HSR Layout / BTM"
+[[neighborhoods]]
+puma = 2900103
+label = "Whitefield / KR Puram / Varthur (Tech Park Belt)"
+[[neighborhoods]]
+puma = 2900104
+label = "Malleshwaram / Rajajinagar / Sadashivanagar"
+[[neighborhoods]]
+puma = 2900105
+label = "Jayanagar / JP Nagar / Banashankari"
+[[neighborhoods]]
+puma = 2900106
+label = "Yelahanka / Hebbal / Hennur"
+[[neighborhoods]]
+puma = 2900107
+label = "Electronic City / Bommanahalli / Hosur Road"
+
+[[centroids]]
+puma = 2900100
+cx = 50
+cy = 50
+radius = 14
+[[centroids]]
+puma = 2900101
+cx = 60
+cy = 45
+radius = 14
+[[centroids]]
+puma = 2900102
+cx = 56
+cy = 58
+radius = 16
+[[centroids]]
+puma = 2900103
+cx = 72
+cy = 40
+radius = 18
+[[centroids]]
+puma = 2900105
+cx = 45
+cy = 62
+radius = 16

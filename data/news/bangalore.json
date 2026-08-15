@@ -1,0 +1,54 @@
+{
+  "city": "bangalore",
+  "date": "2026-07-31",
+  "articles": [
+    {
+      "headline": "Bangalore traffic congestion rated world's worst for third consecutive year",
+      "summary": "TomTom's annual Traffic Index ranked Bangalore as the world's most congested city for the third year running, with average speeds below 15 km/h during peak hours. The BBMP and state government announced a comprehensive mobility plan including more dedicated bus corridors, while tech workers continue to demand hybrid work arrangements.",
+      "topic": "transit",
+      "salience": "cost",
+      "url": "https://www.tomtom.com/traffic-index/ranking/",
+      "date": "2026-01-15"
+    },
+    {
+      "headline": "Karnataka Assembly election 2026: Congress vs BJP in high-stakes battle",
+      "summary": "The Karnataka Assembly elections scheduled for late 2026 are shaping up as a key political test. Congress's Siddaramaiah-led government faces corruption allegations while BJP's Basavaraj Bommai leads the opposition. Bangalore's 28 assembly seats — with their unique IT-wage electorate — are considered decisive battlegrounds.",
+      "topic": "politics",
+      "salience": "none",
+      "url": "https://en.wikipedia.org/wiki/2026_Karnataka_Legislative_Assembly_election",
+      "date": "2026-07-01"
+    },
+    {
+      "headline": "NEET 2026 cancellation hits Bangalore's coaching industry; thousands of aspirants affected",
+      "summary": "Bangalore's coaching-industrial complex in areas like Rajajinagar and J.P. Nagar took a major hit after NEET-UG 2026 was cancelled following the paper leak. Over 2 lakh Karnataka aspirants were affected. Education Minister Dharmendra Pradhan's resignation was welcomed by student groups but the retest date remains uncertain.",
+      "topic": "education",
+      "salience": "youth",
+      "url": "https://en.wikipedia.org/wiki/2026_NEET_controversy",
+      "date": "2026-06-29"
+    },
+    {
+      "headline": "Bangalore tech layoffs continue as AI disruption reshapes the sector",
+      "summary": "Major tech companies in Bangalore's Silicon Valley of India announced fresh layoffs in 2026 totaling over 40,000 positions as AI-driven automation reshapes IT services. Entry-level coding jobs are being automated, forcing engineering graduates to seek reskilling in AI, data science, and product roles. The city's IT workforce participation is under strain.",
+      "topic": "economy",
+      "salience": "youth",
+      "url": "https://economictimes.indiatimes.com/tech/",
+      "date": "2026-03-01"
+    },
+    {
+      "headline": "Cauvery water dispute resolution brings relief; new desalination plant approved",
+      "summary": "The decades-long Cauvery water dispute took a step toward resolution with the Supreme Court mediating a new sharing formula between Karnataka and Tamil Nadu. Meanwhile, Bangalore approved construction of a 500 MLD desalination plant on the coast to address chronic water shortages — particularly acute after the 2024-25 water crisis.",
+      "topic": "environment",
+      "salience": "cost",
+      "url": "https://en.wikipedia.org/wiki/Cauvery_Water_Disputes_Tribunal",
+      "date": "2026-02-10"
+    },
+    {
+      "headline": "Metro Phase 2 completion transforms Bangalore's east-west connectivity",
+      "summary": "Bangalore Metro's Phase 2 lines — including the long-awaited east-west Purple Line extension — opened fully in early 2026, bringing the network to 100 km. Namma Metro now carries 8 lakh passengers daily, though public transport share remains below 30% of total trips.",
+      "topic": "transit",
+      "salience": "none",
+      "url": "https://en.wikipedia.org/wiki/Namma_Metro",
+      "date": "2026-05-20"
+    }
+  ]
+}

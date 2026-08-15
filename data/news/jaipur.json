@@ -1,0 +1,54 @@
+{
+  "city": "jaipur",
+  "date": "2026-07-31",
+  "articles": [
+    {
+      "headline": "Rajasthan Assembly election 2026: BJP seeks second term amid anti-incumbency",
+      "summary": "The Rajasthan Assembly elections are scheduled for late 2026. BJP's Bhajan Lal Sharma government faces significant anti-incumbency pressure after four years marked by law-and-order concerns and farmer protests. Congress is mounting a comeback campaign under Ashok Gehlot. Jaipur's urban voters are seen as key swing bloc.",
+      "topic": "politics",
+      "salience": "none",
+      "url": "https://en.wikipedia.org/wiki/2026_Rajasthan_Legislative_Assembly_election",
+      "date": "2026-07-01"
+    },
+    {
+      "headline": "NEET 2026 cancellation: Jaipur's coaching hub Rajput Bhavan students join protests",
+      "summary": "Jaipur's coaching centers — where thousands of medical aspirants from across Rajasthan prepare for NEET — saw student protests following the exam cancellation over the paper leak. Students blocked the main Ajmer Road demanding Education Minister Dharmendra Pradhan's resignation, which came on June 28.",
+      "topic": "education",
+      "salience": "youth",
+      "url": "https://en.wikipedia.org/wiki/2026_NEET_controversy",
+      "date": "2026-06-30"
+    },
+    {
+      "headline": "Jaipur water crisis deepens as Bisalpur dam reaches critically low levels",
+      "summary": "Jaipur's primary water source — the Bisalpur Dam on the Banas river — reached just 18% of capacity in April 2026 following two years of below-normal monsoon. The JDA implemented mandatory 20% water rationing in all residential areas. Desilting of the Govardhan Sagar began as an emergency measure.",
+      "topic": "environment",
+      "salience": "cost",
+      "url": "https://waterresources.rajasthan.gov.in/",
+      "date": "2026-04-15"
+    },
+    {
+      "headline": "Jaipur Metro Phase 2: North-South corridor receives cabinet approval",
+      "summary": "The Rajasthan cabinet approved the ambitious Jaipur Metro Phase 2 North-South corridor — connecting Ambabari to Pratap Nagar — with an estimated cost of Rs 9,500 crore. The Pink Line, when completed, will nearly double the network's reach and address growing commuter demand.",
+      "topic": "transit",
+      "salience": "none",
+      "url": "https://en.wikipedia.org/wiki/Jaipur_Metro",
+      "date": "2026-03-25"
+    },
+    {
+      "headline": "Heritage Makeover: Jantar Mantar and City Palace to get UNESCO-linked facelift",
+      "summary": "A Rs 500 crore heritage renewal project was launched for Jaipur's Old City, covering the Jantar Mantar observatory, City Palace, and Hawa Mahal. The project aims to improve visitor experience for the city's record 15 million annual tourists while preserving its World Heritage status.",
+      "topic": "culture",
+      "salience": "none",
+      "url": "https://en.wikipedia.org/wiki/Jantar_Mantar,_Jaipur",
+      "date": "2026-06-10"
+    },
+    {
+      "headline": "Textile and gems slowdown hits Jaipur's traditional economy",
+      "summary": "Jaipur's signature industries — block printing, handloom textiles, and gem-cutting — experienced a sharp slowdown in 2026 as global demand weakened and competition from cheaper manufactured alternatives intensified. Nearly 2 lakh workers in the informal sector were affected, adding to unemployment pressure in the city.",
+      "topic": "economy",
+      "salience": "cost",
+      "url": "https://indianexpress.com/article/cities/jaipur",
+      "date": "2026-05-01"
+    }
+  ]
+}

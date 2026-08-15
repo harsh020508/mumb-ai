@@ -1,0 +1,54 @@
+{
+  "city": "kolkata",
+  "date": "2026-07-31",
+  "articles": [
+    {
+      "headline": "West Bengal Assembly election 2026: BJP mounts strongest challenge yet to TMC",
+      "summary": "The 2026 West Bengal Assembly elections are being described as the most closely fought in decades. TMC under Mamata Banerjee seeks a fourth consecutive term while BJP's Suvendu Adhikari leads a strong opposition campaign focused on CAA implementation, law and order, and the Sandeshkhali allegations. Exit polls published on July 10 showed a tight race.",
+      "topic": "politics",
+      "salience": "none",
+      "url": "https://en.wikipedia.org/wiki/2026_West_Bengal_Legislative_Assembly_election",
+      "date": "2026-07-15"
+    },
+    {
+      "headline": "NEET 2026 cancellation sparks massive student protests in Kolkata",
+      "summary": "Kolkata saw some of the largest NEET protests in the country following the exam cancellation. Students staged demonstrations at College Street and Esplanade, burning effigies of Education Minister Dharmendra Pradhan, who subsequently resigned. Doctors' associations in West Bengal held solidarity strikes.",
+      "topic": "education",
+      "salience": "youth",
+      "url": "https://en.wikipedia.org/wiki/2026_NEET_controversy",
+      "date": "2026-06-28"
+    },
+    {
+      "headline": "CAA protests renew in Kolkata as citizenship grants begin",
+      "summary": "Implementation of the Citizenship Amendment Act has reignited protests across West Bengal, where it is the most polarizing issue in the state. The TMC government has publicly refused to cooperate with CAA implementation, while Hindu refugees from Bangladesh await processing. Communal tension rose in some Kolkata neighborhoods during the year.",
+      "topic": "politics",
+      "salience": "community",
+      "url": "https://indianexpress.com/article/india/caa-protests-west-bengal/",
+      "date": "2026-02-01"
+    },
+    {
+      "headline": "Kolkata Metro White Line (Haldia-Howrah) construction progresses despite cost overruns",
+      "summary": "The 48-km Haldia-Howrah metro corridor — India's first underwater river tunnel under the Hooghly — continues construction with cost overruns reaching 45%. The tunnel, when complete, will connect Howrah to Salt Lake Sector V, providing critical east-west connectivity.",
+      "topic": "transit",
+      "salience": "none",
+      "url": "https://en.wikipedia.org/wiki/Kolkata_Metro_Line_2",
+      "date": "2026-04-01"
+    },
+    {
+      "headline": "Sandeshkhali sexual abuse allegations reverberate into 2026 elections",
+      "summary": "The Sandeshkhali allegations of sexual abuse and land-grabbing — first surfacing in early 2024 — continue to dominate Bengal's political discourse. A Calcutta High Court panel is investigating the allegations against TMC local leaders. The issue has become a central campaign weapon for the BJP.",
+      "topic": "politics",
+      "salience": "community",
+      "url": "https://en.wikipedia.org/wiki/Sandeshkhali_incident",
+      "date": "2026-06-01"
+    },
+    {
+      "headline": "Kolkata's Howrah Bridge turns 83; heritage status sought",
+      "summary": "The iconic Howrah Bridge — one of Kolkata's most recognizable symbols — turned 83. The state government renewed its application for UNESCO World Heritage status, hoping to boost tourism and preserve the bridge's historic significance.",
+      "topic": "culture",
+      "salience": "none",
+      "url": "https://en.wikipedia.org/wiki/Howrah_Bridge",
+      "date": "2026-02-14"
+    }
+  ]
+}

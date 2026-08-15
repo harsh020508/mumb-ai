@@ -1,0 +1,20 @@
+meta:
+  validation_n: 2000
+  default_seed: 42
+  notes: 'mumbai rubric: minimal rubric configuration for Mumbai.'
+weights:
+  elections_measures: 1.0
+  resolved_markets_sf_informative: 0.0
+  resolved_markets_general: 0.0
+  live_markets: 0.0
+  counterfactuals: 1.0
+thresholds:
+  weighted_score_min: 0.7
+  elections_measures_max_abs_err: 0.07
+  resolved_markets_max_brier: 0.18
+  counterfactual_direction_min: 0.8
+elections_measures: []
+resolved_markets:
+  sf_opinion_informative: []
+  general_knowledge: []
+counterfactuals: []

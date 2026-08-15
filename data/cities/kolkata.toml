@@ -1,0 +1,99 @@
+# kolkata (Kolkata) — Census 2011 + 2024-26 current-events profile.
+slug = "kolkata"
+display = "kolkata"
+prompt_name = "Kolkata"
+demonym = "Kolkatan"
+pumas = [1900100, 1900101, 1900102, 1900103, 1900104, 1900105, 1900106, 1900107, 1900108, 1900109, 1900110, 1900111, 1900112, 1900113, 1900114]
+pums_path = "data/kolkata_pums.csv"
+tiles_path = "server_tiles/kolkata.db"
+religion_weights = [0.02, 0.005, 0.005, 0.01, 0.0, 0.26, 0.005, 0.69, 0.005]
+
+[politics]
+economic_base = 0.05
+social_base = 0.15
+trust_base = -0.12
+change_base = 0.1
+s_housing = 0.9
+s_crime = 0.65
+s_homeless = 0.55
+s_cost = 0.9
+s_environment = 0.8
+s_immigration = 0.85
+vote_facts = "Kolkata is India's most politically conscious and historically intellectual metropolis, the old imperial capital with a deep tradition of Marxism, trade unionism, and street politics. Its 4.5 million city residents (15 million in the urban agglomeration) have been governed by the Trinamool Congress under Mamata Banerjee since 2011, ending 34 years of Left Front rule. The 2026 state elections are among the most consequential in the country: TMC seeks a fourth consecutive term while the BJP has mounted its strongest-ever challenge in Bengal, weaponizing the Citizenship Amendment Act (deeply unpopular among Bengal's large Muslim electorate, roughly a quarter of Kolkata's population), law-and-order concerns, and corruption allegations tied to the Sandeshkhali scandal. Bengali identity, secularism, and the defence of minority rights are the defining political fault lines. Kolkata's intellectuals and middle class lean left-liberal, but its refugees-from-East-Bengal Hindu communities and traders split between TMC and BJP. Cost of living, crumbling infrastructure, industrial decline, and the flight of investment to other metros weigh heavily; a large informal workforce of hawkers, rickshaw pullers, and jute-mill workers anchors support for welfare and trade-union politics."
+belief_facts = "West Bengal holds first-past-the-post elections to a 294-seat Legislative Assembly; Kolkata municipal (KMC) elections are separate. India's 18+ franchise applies. Bengal has significant Bangladesh-origin refugee populations whose citizenship status under the CAA is a live, polarizing legal and political question."
+
+[work]
+downtown_puma = 1900104
+downtown_share = 0.38
+
+[[neighborhoods]]
+puma = 1900100
+label = "BBD Bagh / Dalhousie / Central Kolkata"
+[[neighborhoods]]
+puma = 1900101
+label = "Park Street / Chowringhee / Esplanade"
+[[neighborhoods]]
+puma = 1900102
+label = "College Street / Bowbazar / North Kolkata"
+[[neighborhoods]]
+puma = 1900103
+label = "Shyambazar / Shovabazar / Jorasanko"
+[[neighborhoods]]
+puma = 1900104
+label = "Howrah / Salkia / Bally (Hooghly west bank)"
+[[neighborhoods]]
+puma = 1900105
+label = "Salt Lake / Sector V / Rajarhat (New Town)"
+[[neighborhoods]]
+puma = 1900106
+label = "Ballygunge / Tollygunge / Gariahat"
+[[neighborhoods]]
+puma = 1900107
+label = "Alipore / Behala / Kidderpore"
+[[neighborhoods]]
+puma = 1900108
+label = "Kasba / Santoshpur / Jadavpur"
+[[neighborhoods]]
+puma = 1900109
+label = "Dum Dum / Baranagar / Kankinara"
+[[neighborhoods]]
+puma = 1900110
+label = "Sealdah / Ultadanga / Beliaghata"
+[[neighborhoods]]
+puma = 1900111
+label = "Cossipore / Sinthee / Maniktala"
+[[neighborhoods]]
+puma = 1900112
+label = "Garden Reach / Metiabruz / Ekbalpore"
+[[neighborhoods]]
+puma = 1900113
+label = "Entally / Tangra / Topsia"
+[[neighborhoods]]
+puma = 1900114
+label = "Dhakuria / Lake Gardens / Ballygunge"
+
+[[centroids]]
+puma = 1900100
+cx = 40
+cy = 50
+radius = 12
+[[centroids]]
+puma = 1900104
+cx = 30
+cy = 52
+radius = 14
+[[centroids]]
+puma = 1900105
+cx = 55
+cy = 44
+radius = 16
+[[centroids]]
+puma = 1900106
+cx = 44
+cy = 60
+radius = 14
+[[centroids]]
+puma = 1900110
+cx = 50
+cy = 48
+radius = 10

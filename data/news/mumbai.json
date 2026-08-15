@@ -1,0 +1,54 @@
+{
+  "city": "mumbai",
+  "date": "2026-07-31",
+  "articles": [
+    {
+      "headline": "NEET 2026 paper leak forces nationwide cancellation; massive protests erupt",
+      "summary": "The NEET-UG 2026 exam scheduled across India was cancelled after a paper leak was confirmed by the NTA. Students protested at Jantar Mantar and organized a Sansad Chalo march. Education Minister Dharmendra Pradhan resigned under pressure. A retest was announced for all 23 lakh affected candidates.",
+      "topic": "education",
+      "salience": "youth",
+      "url": "https://en.wikipedia.org/wiki/2026_NEET_controversy",
+      "date": "2026-07-01"
+    },
+    {
+      "headline": "Mumbai records worst-ever monsoon flooding in July 2026; 47 dead",
+      "summary": "Mumbai experienced unprecedented rainfall in July 2026 — over 1,200mm in 72 hours — overwhelming the city's drainage systems. Western suburbs bore the brunt, with Andheri and Goregaon submerged under 6-8 feet of water. Rail services halted for 4 days, and the BMC declared a state of emergency.",
+      "topic": "disaster",
+      "salience": "cost",
+      "url": "https://timesofindia.indiatimes.com/city/mumbai",
+      "date": "2026-07-15"
+    },
+    {
+      "headline": "Mumbai Metro Line 3 (Aarey-BKC-Seepz) partially opens after decade of delays",
+      "summary": "The long-awaited Aqua Line 3 corridor — Mumbai's first fully underground metro — began partial operations between Bandra Kurla Complex and SEEPZ in Andheri. The corridor is expected to serve 1.5 million commuters daily and reduce Western Express Highway congestion by 30%.",
+      "topic": "transit",
+      "salience": "none",
+      "url": "https://en.wikipedia.org/wiki/Mumbai_Metro_Line_3",
+      "date": "2026-06-15"
+    },
+    {
+      "headline": "Supreme Court rules on Waqf Board properties amid nationwide controversy",
+      "summary": "The Supreme Court delivered a landmark judgment on the Waqf (Amendment) Act, upholding some provisions while striking down others that allowed government takeover of disputed Waqf properties. The ruling has significant implications for Maharashtra's large Muslim population and Mumbai's Waqf-managed institutions.",
+      "topic": "politics",
+      "salience": "community",
+      "url": "https://en.wikipedia.org/wiki/Wqf_(Amendment)_Act,_2025",
+      "date": "2026-03-10"
+    },
+    {
+      "headline": "Mumbai real estate prices hit all-time high; average flat costs Rs 3.5 crore",
+      "summary": "Mumbai's real estate market continued its steep rise, with average flat prices in the island city crossing Rs 3.5 crore (approximately $420K). The BMC's new Development Plan and infrastructure projects like the Coastal Road have fueled speculation, pricing out middle-class buyers entirely.",
+      "topic": "economy",
+      "salience": "cost",
+      "url": "https://www.moneycontrol.com/real-estate/",
+      "date": "2026-06-20"
+    },
+    {
+      "headline": "CAA citizenship grants begin in Maharashtra; 12,000 applications processed",
+      "summary": "The Central Government began processing Citizenship Amendment Act applications in Maharashtra. Mumbai received over 12,000 applications, primarily from Hindu and Sikh refugees from Pakistan and Bangladesh. The move drew criticism from opposition parties and Muslim community leaders who called the act discriminatory.",
+      "topic": "politics",
+      "salience": "community",
+      "url": "https://indianexpress.com/article/india/caa-citizenship-act-implementation-2025/",
+      "date": "2025-05-20"
+    }
+  ]
+}

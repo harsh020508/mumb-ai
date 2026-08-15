@@ -1,0 +1,41 @@
+# delhi (National Capital Territory of Delhi) — UTM Zone 43N.
+
+[pipeline]
+meters_per_cell = 2.0
+chunk_meters    = 250.0
+lod_levels      = 6
+
+[crs]
+utm_epsg = "EPSG:32643"
+
+[bbox_wgs84]
+west  = 76.84
+south = 28.40
+east  = 77.35
+north = 28.88
+
+[land_ref]
+lon = 77.2090
+lat = 28.6139
+
+[paths]
+osm_pbf   = "data/delhi.osm.pbf"
+dem_tif   = "data/delhi_dem.tif"
+output_db = "artifacts/tiles_delhi.db"
+mapping_json = "artifacts/mapping_delhi.json"
+
+[elevation]
+walkable_threshold_m = 1.5
+flatten_buildings    = true
+
+[collision]
+building_floor_blocked = true
+
+[atlas]
+tile_width  = 32
+tile_height = 32
+columns     = 47
+path = "assets/atlas.png"
+
+[verify]
+test_chunks = []
