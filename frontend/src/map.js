@@ -318,14 +318,16 @@ export class SFMap {
   // so on a tall phone the city fills the viewport instead of shrinking into a band.
   _fitZoom() {
     const pad = 10;
-    if (this.landBox) {
+    if (this.landBox && (this.landBox.maxX - this.landBox.minX) > 100 && (this.landBox.maxY - this.landBox.minY) > 100) {
       const lw = this.landBox.maxX - this.landBox.minX, lh = this.landBox.maxY - this.landBox.minY;
       return Math.min((this.cssW - pad * 2) / lw, (this.cssH - pad * 2) / lh);
     }
     return Math.min(this.cssW / this.imgW, this.cssH / this.imgH);
   }
   _fitCenter() {
-    if (this.landBox) return { x: (this.landBox.minX + this.landBox.maxX) / 2, y: (this.landBox.minY + this.landBox.maxY) / 2 };
+    if (this.landBox && (this.landBox.maxX - this.landBox.minX) > 100 && (this.landBox.maxY - this.landBox.minY) > 100) {
+      return { x: (this.landBox.minX + this.landBox.maxX) / 2, y: (this.landBox.minY + this.landBox.maxY) / 2 };
+    }
     return { x: this.imgW / 2, y: this.imgH / 2 };
   }
   // overview zoom = fit-to-screen, but never so far out that sprites become squares

@@ -148,14 +148,18 @@ async function loadCity(city) {
     setTimeout(() => { hide(els.boot); loadNews(city.slug); }, 450);
     state.phase = "idle";
   } catch (err) {
-    console.error(err);
+    console.error(`Error loading city ${city.slug}:`, err);
     hide(els.boot);
     hide(els.newsBubble);
+    showToast(`Could not load ${city.display || city.slug}, falling back to Mumbai`);
+    if (city.slug !== "mumbai" && state.cities.some(c => c.slug === "mumbai")) {
+      const m = state.cities.find(c => c.slug === "mumbai");
+      if (m) return loadCity(m);
+    }
     state.simId = null; state.mainBranch = null;
     map.setAgents(fallbackAgents(SIM.n));        // never leave an empty city
     els.status.textContent = "offline preview · backend unreachable";
-    toast("Couldn't reach the backend — showing an offline preview.");
-    state.phase = "error";
+    state.phase = "idle";
   }
 }
 

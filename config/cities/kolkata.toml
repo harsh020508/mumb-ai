@@ -4,6 +4,7 @@
 meters_per_cell = 2.0
 chunk_meters    = 250.0
 lod_levels      = 6
+water_max_elev_m = 0.0
 
 [crs]
 utm_epsg = "EPSG:32645"

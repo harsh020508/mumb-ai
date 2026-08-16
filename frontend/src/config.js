@@ -43,7 +43,7 @@ export const MAP = {
 // Neutral palette (purple removed). Map colors now come from the pixel image;
 // these drive UI chrome + the yes/no verdict markers.
 export const COLORS = {
-  water:   "#215C81",   // exact ocean color in sf_tiles.png → letterbox blends seamlessly
+  water:   "#141414",   // neutral dark letterbox tone (matches app background)
   ink:     "#141414",   // primary text / title — near-black
   inkSoft: "#6E7280",   // secondary text / neutral sprites
   accent:  "#141414",   // was violet — now neutral black
