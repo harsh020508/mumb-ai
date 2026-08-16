@@ -27,9 +27,9 @@ const SPRITE_WORLD = 22;        // sprite footprint in world px (~one 2 m cell �
 // the square overview-LOD (which kicks in below ~9 on-screen px). Bigger cities
 // have much larger tile images, so their fit-to-screen zoom would otherwise fall
 // into squares; this floor makes every city open like SF — small walking sprites.
-const OVERVIEW_SPRITE_PX = 10;
+const OVERVIEW_SPRITE_PX = 14;
 // overview-LOD colors (one per character) so the zoomed-out crowd still reads as varied
-const CHAR_COLORS = ["#c64f3f", "#3f72c6", "#46a35a", "#8a5fbf", "#caa23c", "#cf6aa0", "#3fb5b0", "#b5713f", "#5a6470", "#d0823f"];
+const CHAR_COLORS = ["#c64f3f", "#3f72c6", "#46a35a", "#8a5fbf", "#caa23c", "#cf6aa0", "#3fb5b0", "#b5713f", "#5a6470", "#d0823f", "#e67e22", "#1abc9c", "#9b59b6", "#34495e", "#f1c40f"];
 
 // Pokémon-style thought bubbles (shown when zoomed in)
 const BUBBLE = { maxAtOnce: 7, sep: 165, cycleMs: 2600, font: '600 11px "neue-haas-grotesk-display", -apple-system, sans-serif', maxW: 156 };
@@ -620,7 +620,7 @@ export class SFMap {
       const w = drawPx, h = drawPx;
       const footX = s.x, footY = s.y;     // feet anchored to the cell
 
-      if (drawPx < 9 || !spriteOk) {
+      if (drawPx < 5 || !spriteOk) {
         // overview LOD: a cheap colored square per agent (keeps 10k sprites at 60fps;
         // blitting 10k sprite cells every frame would be far heavier)
         const sz = Math.max(2, Math.round(drawPx * 0.6));
