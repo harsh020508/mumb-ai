@@ -794,7 +794,7 @@ fn load_city_runtime(slug: &str) -> anyhow::Result<CityRuntime> {
 }
 
 /// Build the full AppState from environment (loads every available city + opens caches).
-pub fn build_state(tiles_path: &str, cache_path: Option<&str>, state_db: &str) -> anyhow::Result<AppState> {
+pub fn build_state(_tiles_path: &str, cache_path: Option<&str>, state_db: &str) -> anyhow::Result<AppState> {
     let cache = match cache_path {
         Some(p) => Some(Arc::new(Cache::open(p)?)),
         None => None,

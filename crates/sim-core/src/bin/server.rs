@@ -4,13 +4,7 @@
 use simfrancisco::api;
 use std::net::SocketAddr;
 
-const CITIES: [(&str, &str); 5] = [
-    ("mumbai", "Mumbai"),
-    ("delhi", "Delhi"),
-    ("kolkata", "Kolkata"),
-    ("bangalore", "Bangalore"),
-    ("jaipur", "Jaipur"),
-];
+
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -30,8 +24,9 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("loading state: tiles={tiles_path} cache={cache_path} state={state_db}");
     let state = api::build_state(&tiles_path, Some(&cache_path), &state_db)?;
     tracing::info!(
-        "loaded {} SF PUMS records; map {}x{} chunks",
+        "loaded {} default city ({}) PUMS records; map {}x{} chunks",
         state.records.len(),
+        state.default_city,
         state.tiles.manifest.chunks_x,
         state.tiles.manifest.chunks_y
     );

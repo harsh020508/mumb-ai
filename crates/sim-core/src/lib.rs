@@ -21,6 +21,7 @@ pub mod predict;
 pub mod pums;
 pub mod religion;
 pub mod rubric;
+pub mod rag;
 pub mod sim;
 pub mod state;
 pub mod store;

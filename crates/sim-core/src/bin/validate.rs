@@ -25,7 +25,7 @@ struct Args {
 }
 
 fn parse_args() -> Args {
-    let mut a = Args { city: "sf".into(), ..Default::default() };
+    let mut a = Args { city: "mumbai".into(), ..Default::default() };
     let mut it = std::env::args().skip(1);
     while let Some(arg) = it.next() {
         match arg.as_str() {

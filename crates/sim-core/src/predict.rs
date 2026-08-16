@@ -277,7 +277,14 @@ p_yes is a probability between 0 and 1. Be realistic and calibrated to {city_nam
         // Inject today's news into LIVE polls only (recent as_of_date); historical
         // backtests keep an old as_of_date and never see it, so they stay leakage-free.
         let news_block = if poll.as_of_date.as_str() >= "2025-06-01" {
-            crate::news::prompt_block(&pop.profile.slug)
+            let news = crate::news::load(&pop.profile.slug);
+            let rag_index = crate::rag::RagIndex::from_news(&pop.profile.slug, &news);
+            let retrieved = rag_index.retrieve_context(&poll.question, 4);
+            if retrieved.is_empty() {
+                crate::news::prompt_block(&pop.profile.slug)
+            } else {
+                retrieved
+            }
         } else {
             String::new()
         };
@@ -496,15 +503,20 @@ p_yes is a probability between 0 and 1. Be realistic and calibrated to {city_nam
         if people.is_empty() {
             return vec![];
         }
+        let news = crate::news::load(&pop.profile.slug);
+        let rag_index = crate::rag::RagIndex::from_news(&pop.profile.slug, &news);
+        let rag_context = rag_index.retrieve_context("local daily life news transit housing infrastructure", 3);
+
         let sys = format!(
             "You voice the private inner monologue of real {city} residents for an ambient \
 city simulation. For each resident, write the one short thought running through their head \
 right now as they go about an ordinary day — first person, present tense, at most 9 words, \
 specific and true to exactly who they are (their age, job, neighborhood, money pressures, \
-family, and values). Make each distinct and human; vary the mood; some mundane, some hopeful, \
+family, and values). {rag_context}Make each distinct and human; vary the mood; some mundane, some hopeful, \
 some worried. No names, no hashtags, no surrounding quotes. \
 Respond with STRICT JSON only: [{{\"i\":<index>,\"t\":\"<thought>\"}}].",
             city = pop.profile.prompt_name,
+            rag_context = if rag_context.is_empty() { String::new() } else { format!("{rag_context} ") }
         );
         let mut user = String::from("Residents:\n");
         for (idx, (_id, prose)) in people.iter().enumerate() {
