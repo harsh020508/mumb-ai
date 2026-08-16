@@ -24,10 +24,10 @@ COPY --from=builder /app/target/release/server /usr/local/bin/server
 COPY server_tiles ./server_tiles
 COPY data/cities ./data/cities
 COPY data/news ./data/news
-COPY data/sf_pums.csv data/neu_york_pums.csv data/synth_la_pums.csv \
-     data/cybercago_pums.csv data/simami_pums.csv ./data/
+COPY data/mumbai_pums.csv data/delhi_pums.csv data/kolkata_pums.csv \
+     data/bangalore_pums.csv data/jaipur_pums.csv ./data/
 ENV PORT=8080 \
-    TILES_DB=server_tiles/sf.db \
+    TILES_DB=server_tiles/mumbai.db \
     RUST_LOG=info
 EXPOSE 8080
 CMD ["server"]
