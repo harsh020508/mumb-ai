@@ -10,12 +10,7 @@
 
 use simfrancisco::news;
 
-const CITIES: [(&str, &str); 10] = [
-    ("sf", "San Francisco"),
-    ("neu_york", "New York City"),
-    ("synth_la", "Los Angeles"),
-    ("cybercago", "Chicago"),
-    ("simami", "Miami"),
+const CITIES: [(&str, &str); 5] = [
     ("mumbai", "Mumbai"),
     ("delhi", "Delhi"),
     ("kolkata", "Kolkata"),

@@ -803,21 +803,10 @@ pub fn build_state(tiles_path: &str, cache_path: Option<&str>, state_db: &str) -
     let engine = Engine::new(client.clone());
     let store = Arc::new(Store::open(state_db)?);
 
-    // SF is always available (committed tiles.db + PUMS at the repo root).
-    let sf_tiles = Arc::new(TilesDb::open(tiles_path)?);
-    let sf_records = Arc::new(crate::pums::load_sf()?);
     let mut cities: HashMap<String, Arc<CityRuntime>> = HashMap::new();
-    cities.insert(
-        "sf".to_string(),
-        Arc::new(CityRuntime {
-            profile: Arc::new(CityProfile::sf()),
-            tiles: sf_tiles.clone(),
-            records: sf_records.clone(),
-        }),
-    );
 
-    // Other cities load when their data/cities/<slug>.toml + tiles.db + PUMS subset exist.
-    for slug in ["neu_york", "synth_la", "cybercago", "simami", "mumbai", "delhi", "kolkata", "bangalore", "jaipur"] {
+    // Indian cities load when their data/cities/<slug>.toml + tiles.db + PUMS subset exist.
+    for slug in ["mumbai", "delhi", "kolkata", "bangalore", "jaipur"] {
         match load_city_runtime(slug) {
             Ok(rt) => {
                 tracing::info!("loaded city {slug}: {} PUMS records", rt.records.len());
@@ -827,13 +816,18 @@ pub fn build_state(tiles_path: &str, cache_path: Option<&str>, state_db: &str) -
         }
     }
 
+    let default_rt = cities
+        .get("mumbai")
+        .cloned()
+        .ok_or_else(|| anyhow::anyhow!("default city 'mumbai' failed to load"))?;
+
     Ok(AppState {
         client,
         engine,
-        tiles: sf_tiles,
-        records: sf_records,
+        tiles: default_rt.tiles.clone(),
+        records: default_rt.records.clone(),
         cities: Arc::new(cities),
-        default_city: "sf".to_string(),
+        default_city: "mumbai".to_string(),
         store,
         sims: Arc::new(Mutex::new(HashMap::new())),
         model_ok: Arc::new(Mutex::new(None)),

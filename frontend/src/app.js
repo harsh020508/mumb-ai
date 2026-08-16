@@ -61,9 +61,9 @@ const state = {
   newsExpanded: false,   // whether the news bubble is showing all of them
 };
 
-// fallback city when /cities is unavailable — keeps the single-city SF behavior.
-const SF_FALLBACK = { slug: "sf", display: "sim francisco", bbox: { ...MAP.bbox }, default: true };
-const citySlug = () => state.city?.slug || "sf";
+// fallback city when /cities is unavailable.
+const MUMBAI_FALLBACK = { slug: "mumbai", display: "mumbai", bbox: { ...MAP.bbox }, default: true };
+const citySlug = () => state.city?.slug || "mumbai";
 
 // fetch LLM chatter for the residents now on screen (sparse, batched, best-effort)
 async function requestChatter(ids) {
@@ -100,9 +100,8 @@ async function boot() {
   map.start();
   els.status.textContent = "waking the city…";
 
-  // Load the city catalog first (best-effort). If it fails we keep the existing
-  // single-city SF behavior — the switcher just stays hidden.
-  let initial = SF_FALLBACK;
+  // Load the city catalog first (best-effort). If it fails we keep the default Mumbai city behavior.
+  let initial = MUMBAI_FALLBACK;
   try {
     const data = await api.getCities();
     const cities = (data?.cities || []).filter((c) => c && c.slug);

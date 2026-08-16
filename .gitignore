@@ -23,6 +23,7 @@ cache.db
 /data/planet_*-geopackage/
 # per-city map build outputs (baked into the deploy image, not git)
 /artifacts
+/server_tiles/*.db
 /mapping.json
 mapping_*.json
 

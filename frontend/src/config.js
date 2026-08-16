@@ -33,10 +33,10 @@ export const TIMING = {
 // Pixel-art map base (whole-city render from the golden-future-map track) + the
 // 16×16 RPG character sprite sheet (01-generic: 10 characters).
 export const MAP = {
-  base: "assets/sf_tiles.png",        // 2144×1920 whole-city LOD-4 tile render
+  base: "assets/mumbai_tiles.png",        // whole-city LOD-4 tile render
   sprites: "assets/sprites.png",      // 240×128, 10 chars in 5×2 blocks of 48×64
   // WGS-84 bbox the base image spans (from tiles.db manifest).
-  bbox: { west: -122.5247, east: -122.3366, south: 37.6983, north: 37.8312 },
+  bbox: { west: 72.77, east: 72.99, south: 18.87, north: 19.28 },
   detailZoomMul: 6.5,                 // click-to-zoom factor over the fit-to-screen zoom
 };
 
