@@ -3,7 +3,9 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 // Backend (see ../INTEGRATION.md). CORS is wide-open, so browser fetch works.
-export const BASE = "https://sf-digital-twin-tp.fly.dev";
+export const BASE = (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"))
+  ? "http://127.0.0.1:8080"
+  : "https://sf-digital-twin-tp.fly.dev";
 
 // Synthetic population to spin up on load. 5,000 agents → a denser, more diverse
 // crowd; poll latency stays bounded because agents are clustered into ≤160 archetypes
