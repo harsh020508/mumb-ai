@@ -25,6 +25,7 @@ pub enum Provider {
     AzureResponses, // gpt-4o / gpt-5.5  → POST /responses
     AzureChat,      // grok-4.3          → POST /chat/completions
     Anthropic,      // claude-sonnet-*   → POST /v1/messages (x-api-key)
+    Omniroute,      // any model         → POST /chat/completions (Bearer, proxy)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -146,6 +147,8 @@ pub struct ModelClient {
     api_key: String,
     anthropic_key: String,
     anthropic_url: String,
+    omniroute_key: String,
+    omniroute_url: String,
     sem: Arc<Semaphore>,
     max_retries: u32,
     cache: Option<Arc<Cache>>,
@@ -174,6 +177,9 @@ impl ModelClient {
         let anthropic_key = std::env::var("ANTHROPIC_API_KEY").unwrap_or_default();
         let anthropic_url = std::env::var("ANTHROPIC_API_URL")
             .unwrap_or_else(|_| "https://api.anthropic.com/v1/messages".to_string());
+        let omniroute_key = std::env::var("OMNIROUTE_API_KEY").unwrap_or_default();
+        let omniroute_url = std::env::var("OMNIROUTE_API_URL")
+            .unwrap_or_else(|_| "http://localhost:20128/v1".to_string());
         let http = reqwest::Client::builder()
             .timeout(Duration::from_secs(180))
             .connect_timeout(Duration::from_secs(15))
@@ -184,6 +190,8 @@ impl ModelClient {
             api_key,
             anthropic_key,
             anthropic_url,
+            omniroute_key,
+            omniroute_url,
             sem: Arc::new(Semaphore::new(max_inflight)),
             max_retries: 5,
             cache,
@@ -193,7 +201,7 @@ impl ModelClient {
     }
 
     pub fn has_key(&self) -> bool {
-        !self.api_key.is_empty() || !self.anthropic_key.is_empty()
+        !self.api_key.is_empty() || !self.anthropic_key.is_empty() || !self.omniroute_key.is_empty()
     }
 
     fn cache_key(model: Model, system: &str, user: &str, max_tokens: u32) -> String {
@@ -250,7 +258,7 @@ impl ModelClient {
         max_tokens: u32,
     ) -> Result<String> {
         let _permit = self.sem.acquire().await.unwrap();
-        let provider = model.provider();
+        let provider = if !self.omniroute_key.is_empty() { Provider::Omniroute } else { model.provider() };
         let (url, body) = match provider {
             Provider::AzureResponses => {
                 let input = if system.is_empty() { user.to_string() } else { format!("{system}\n\n{user}") };
@@ -265,6 +273,15 @@ impl ModelClient {
                 messages.push(json!({"role":"user","content":user}));
                 (
                     format!("{}/chat/completions", self.base),
+                    json!({ "model": model.id(), "messages": messages, "max_tokens": max_tokens.max(16) }),
+                )
+            }
+            Provider::Omniroute => {
+                let mut messages = Vec::new();
+                if !system.is_empty() { messages.push(json!({"role":"system","content":system})); }
+                messages.push(json!({"role":"user","content":user}));
+                (
+                    format!("{}/chat/completions", self.omniroute_url),
                     json!({ "model": model.id(), "messages": messages, "max_tokens": max_tokens.max(16) }),
                 )
             }
@@ -288,6 +305,11 @@ impl ModelClient {
                     .post(&url)
                     .header("x-api-key", &self.anthropic_key)
                     .header("anthropic-version", "2023-06-01")
+                    .header("Content-Type", "application/json"),
+                Provider::Omniroute => self
+                    .http
+                    .post(&url)
+                    .header("Authorization", format!("Bearer {}", self.omniroute_key))
                     .header("Content-Type", "application/json"),
                 _ => self
                     .http
@@ -510,6 +532,8 @@ mod tests {
             api_key: String::new(),
             anthropic_key: String::new(),
             anthropic_url: "https://api.anthropic.com/v1/messages".to_string(),
+            omniroute_key: String::new(),
+            omniroute_url: "http://localhost:20128/v1".to_string(),
             sem: Arc::new(Semaphore::new(1)),
             max_retries: 0,
             cache: None,

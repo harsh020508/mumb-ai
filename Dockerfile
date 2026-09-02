@@ -24,8 +24,7 @@ COPY --from=builder /app/target/release/server /usr/local/bin/server
 COPY server_tiles ./server_tiles
 COPY data/cities ./data/cities
 COPY data/news ./data/news
-COPY data/mumbai_pums.csv data/delhi_pums.csv data/kolkata_pums.csv \
-     data/bangalore_pums.csv data/jaipur_pums.csv ./data/
+COPY data/*.csv ./data/
 ENV PORT=8080 \
     TILES_DB=server_tiles/mumbai.db \
     RUST_LOG=info

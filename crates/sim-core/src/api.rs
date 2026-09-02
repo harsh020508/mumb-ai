@@ -164,7 +164,18 @@ async fn create_sim(State(st): State<AppState>, Json(req): Json<CreateSimReq>) -
                 .into_response();
         }
     };
-    let pop = build_population_with(&rt.records, n, req.seed, Some(&rt.tiles), rt.profile.clone());
+    // Build population + engine off the async thread to avoid blocking the tokio runtime
+    // (sample_residential_cell does up to 400 SQLite reads per agent).
+    let start_secs = parse_iso(&req.start_datetime);
+    let rt2 = rt.clone();
+    let tick_secs = req.tick_seconds;
+    let seed = req.seed;
+    let (pop_arc, engine) = tokio::task::spawn_blocking(move || {
+        let pop = build_population_with(&rt2.records, n, seed, Some(&rt2.tiles), rt2.profile.clone());
+        let pop_arc = Arc::new(pop);
+        let engine = SimEngine::new(rt2.tiles.clone(), pop_arc.clone(), start_secs, tick_secs);
+        (pop_arc, engine)
+    }).await.expect("population build failed");
     let sim_id = format!("sim-{}-{}-{}-{}", city_slug, req.seed, n, short_hash(&format!("{}{}", req.start_datetime, req.tick_seconds)));
     let meta = SimMeta {
         seed: req.seed,
@@ -173,11 +184,6 @@ async fn create_sim(State(st): State<AppState>, Json(req): Json<CreateSimReq>) -
         tick_seconds: req.tick_seconds,
         commit_every: req.commit_every,
     };
-    let start_secs = parse_iso(&req.start_datetime);
-
-    // main-branch engine
-    let pop_arc = Arc::new(pop);
-    let engine = SimEngine::new(rt.tiles.clone(), pop_arc.clone(), start_secs, req.tick_seconds);
 
     // persist static layer + init snapshot for the branching store
     let static_blob = serde_json::to_string(&StaticLayer::from_pop(&pop_arc)).unwrap_or_default();
