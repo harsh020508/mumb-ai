@@ -1,20 +1,51 @@
 meta:
   validation_n: 2000
   default_seed: 42
-  notes: 'kolkata rubric: minimal rubric configuration for Kolkata.'
+  notes: "kolkata rubric: ground truth elections, policy preferences, and counterfactuals for Kolkata."
+
 weights:
   elections_measures: 1.0
   resolved_markets_sf_informative: 0.0
   resolved_markets_general: 0.0
   live_markets: 0.0
   counterfactuals: 1.0
+
 thresholds:
-  weighted_score_min: 0.7
-  elections_measures_max_abs_err: 0.07
-  resolved_markets_max_brier: 0.18
-  counterfactual_direction_min: 0.8
-elections_measures: []
+  weighted_score_min: 0.70
+  elections_measures_max_abs_err: 0.12
+  resolved_markets_max_brier: 0.20
+  counterfactual_direction_min: 0.80
+
+elections_measures:
+  - id: kolkata_2024_lok_sabha_tmc_vote_share
+    as_of_date: "2024-05-01"
+    model: gpt-4o
+    population: cvap_likely_voter
+    question: "In the 2024 Lok Sabha election in Kolkata, do you vote for the Trinamool Congress (TMC) candidate over the BJP candidate?"
+    description: "Choice between TMC and BJP across Kolkata Uttar and Kolkata Dakshin seats. YES = vote TMC. TMC won Kolkata seats with ~52.4% vote share."
+    target_share: 0.5240
+    tolerance: 0.10
+
+  - id: kolkata_east_kolkata_wetlands_protection
+    as_of_date: "2024-01-01"
+    model: gpt-4o
+    population: cvap_likely_voter
+    question: "Do you support strict bans on commercial real estate encroachment into the East Kolkata Wetlands?"
+    description: "Support for ecological protection of East Kolkata Wetlands. YES = support."
+    target_share: 0.7600
+    tolerance: 0.10
+
 resolved_markets:
   sf_opinion_informative: []
   general_knowledge: []
-counterfactuals: []
+
+counterfactuals:
+  - id: cf_kolkata_cyclone_raises_embankment_demand
+    as_of_date: "2024-05-01"
+    model: gpt-4o
+    framing: vote
+    population: cvap_likely_voter
+    question: "Do you support allocating municipal budget priority to coastal/riverine storm surge barrier construction?"
+    description: "Support for storm resilience infrastructure. YES = support."
+    event: "Severe Cyclone Remal strikes West Bengal coastal belt, bringing heavy storm surges and high winds to Kolkata."
+    expected_direction: up

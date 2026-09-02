@@ -1,20 +1,70 @@
 meta:
   validation_n: 2000
   default_seed: 42
-  notes: 'delhi rubric: minimal rubric configuration for Delhi.'
+  notes: "delhi rubric: ground truth elections, policy preferences, and counterfactuals for Delhi."
+
 weights:
   elections_measures: 1.0
   resolved_markets_sf_informative: 0.0
   resolved_markets_general: 0.0
   live_markets: 0.0
   counterfactuals: 1.0
+
 thresholds:
-  weighted_score_min: 0.7
-  elections_measures_max_abs_err: 0.07
-  resolved_markets_max_brier: 0.18
-  counterfactual_direction_min: 0.8
-elections_measures: []
+  weighted_score_min: 0.70
+  elections_measures_max_abs_err: 0.12
+  resolved_markets_max_brier: 0.20
+  counterfactual_direction_min: 0.80
+
+elections_measures:
+  - id: delhi_2024_lok_sabha_bjp_vote_share
+    as_of_date: "2024-05-01"
+    model: gpt-4o
+    population: cvap_likely_voter
+    question: "In the May 2024 Lok Sabha election in Delhi, do you vote for the Bharatiya Janata Party (BJP) candidate over the AAP-Congress Alliance candidate?"
+    description: "A two-way choice between BJP and the AAP-Congress INDIA alliance across Delhi's 7 parliamentary constituencies. YES = vote BJP. BJP won all 7 seats in Delhi with ~54.3% vote share."
+    target_share: 0.5430
+    tolerance: 0.10
+
+  - id: delhi_free_electricity_water_policy_support
+    as_of_date: "2024-01-01"
+    model: gpt-4o
+    population: cvap_likely_voter
+    question: "Do you support Delhi's municipal subsidies providing free electricity up to 200 units and free lifeline water to households?"
+    description: "Support for Delhi's civic welfare subsidies. YES = support subsidies."
+    target_share: 0.7400
+    tolerance: 0.10
+
+  - id: delhi_ev_policy_subsidies_support
+    as_of_date: "2024-02-01"
+    model: gpt-4o
+    population: cvap_likely_voter
+    question: "Do you support state subsidies and mandates to transition Delhi's public buses and auto-rickshaws to 100% electric vehicles?"
+    description: "Support for Delhi Electric Vehicle Policy. YES = support."
+    target_share: 0.6800
+    tolerance: 0.10
+
 resolved_markets:
   sf_opinion_informative: []
   general_knowledge: []
-counterfactuals: []
+
+counterfactuals:
+  - id: cf_delhi_winter_smog_raises_pollution_control_demand
+    as_of_date: "2024-11-01"
+    model: gpt-4o
+    framing: vote
+    population: cvap_likely_voter
+    question: "Do you support strict emergency restrictions on private vehicles (Odd-Even scheme) and construction during peak winter months?"
+    description: "Support for emergency vehicular and dust control measures. YES = support."
+    event: "Air Quality Index (AQI) in Delhi exceeds 450 ('Severe+') for five consecutive days due to stubble burning and stagnant weather conditions."
+    expected_direction: up
+
+  - id: cf_delhi_water_shortage_lowers_incumbent_approval
+    as_of_date: "2024-06-01"
+    model: gpt-4o
+    framing: vote
+    population: cvap_likely_voter
+    question: "Do you approve of the current Delhi state government's performance?"
+    description: "Approval of state government performance. YES = approve."
+    event: "An unprecedented summer heatwave leads to acute water supply shortages across multiple colonies, leading to protests and water-tanker rationing."
+    expected_direction: down

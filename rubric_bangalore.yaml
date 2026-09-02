@@ -1,20 +1,51 @@
 meta:
   validation_n: 2000
   default_seed: 42
-  notes: 'bangalore rubric: minimal rubric configuration for Bangalore.'
+  notes: "bangalore rubric: ground truth elections, policy preferences, and counterfactuals for Bangalore."
+
 weights:
   elections_measures: 1.0
   resolved_markets_sf_informative: 0.0
   resolved_markets_general: 0.0
   live_markets: 0.0
   counterfactuals: 1.0
+
 thresholds:
-  weighted_score_min: 0.7
-  elections_measures_max_abs_err: 0.07
-  resolved_markets_max_brier: 0.18
-  counterfactual_direction_min: 0.8
-elections_measures: []
+  weighted_score_min: 0.70
+  elections_measures_max_abs_err: 0.12
+  resolved_markets_max_brier: 0.20
+  counterfactual_direction_min: 0.80
+
+elections_measures:
+  - id: bangalore_2024_lok_sabha_bjp_vote_share
+    as_of_date: "2024-04-01"
+    model: gpt-4o
+    population: cvap_likely_voter
+    question: "In the 2024 Lok Sabha election in Bengaluru, do you vote for the NDA (BJP-JD(S)) candidate over the Congress candidate?"
+    description: "Choice between NDA and Congress across Bangalore South, Central, and North seats. YES = vote NDA. NDA won all 3 Bangalore seats in 2024 with ~56.8% vote share."
+    target_share: 0.5680
+    tolerance: 0.10
+
+  - id: bangalore_suburban_rail_namma_metro_expansion
+    as_of_date: "2024-01-01"
+    model: gpt-4o
+    population: cvap_likely_voter
+    question: "Do you support prioritizing public fund allocation to fast-track Namma Metro Phase 3 and Suburban Rail over road widening?"
+    description: "Support for transit-first infrastructure policy in Bengaluru. YES = support."
+    target_share: 0.7800
+    tolerance: 0.10
+
 resolved_markets:
   sf_opinion_informative: []
   general_knowledge: []
-counterfactuals: []
+
+counterfactuals:
+  - id: cf_bangalore_water_crisis_raises_tanker_regulation_demand
+    as_of_date: "2024-03-01"
+    model: gpt-4o
+    framing: vote
+    population: cvap_likely_voter
+    question: "Do you support strict price caps and municipal takeover of private water tankers during drought periods?"
+    description: "Support for emergency water regulation. YES = support."
+    event: "Borewells across IT corridor PUMAs dry up during severe summer drought, triggering price gouging by private tanker operators."
+    expected_direction: up

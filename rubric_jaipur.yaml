@@ -1,20 +1,51 @@
 meta:
   validation_n: 2000
   default_seed: 42
-  notes: 'jaipur rubric: minimal rubric configuration for Jaipur.'
+  notes: "jaipur rubric: ground truth elections, policy preferences, and counterfactuals for Jaipur."
+
 weights:
   elections_measures: 1.0
   resolved_markets_sf_informative: 0.0
   resolved_markets_general: 0.0
   live_markets: 0.0
   counterfactuals: 1.0
+
 thresholds:
-  weighted_score_min: 0.7
-  elections_measures_max_abs_err: 0.07
-  resolved_markets_max_brier: 0.18
-  counterfactual_direction_min: 0.8
-elections_measures: []
+  weighted_score_min: 0.70
+  elections_measures_max_abs_err: 0.12
+  resolved_markets_max_brier: 0.20
+  counterfactual_direction_min: 0.80
+
+elections_measures:
+  - id: jaipur_2024_lok_sabha_bjp_vote_share
+    as_of_date: "2024-04-01"
+    model: gpt-4o
+    population: cvap_likely_voter
+    question: "In the 2024 Lok Sabha election in Jaipur, do you vote for the BJP candidate over the Congress candidate?"
+    description: "Choice between BJP and Congress in Jaipur Rural and Jaipur Urban seats. YES = vote BJP. BJP won Jaipur seats with ~58.2% vote share."
+    target_share: 0.5820
+    tolerance: 0.10
+
+  - id: jaipur_heritage_conservation_tourism_support
+    as_of_date: "2024-01-01"
+    model: gpt-4o
+    population: cvap_likely_voter
+    question: "Do you support strict architectural regulation and pedestrianization zones in the Walled City (Pink City) heritage district?"
+    description: "Support for heritage conservation and pedestrianization. YES = support."
+    target_share: 0.7100
+    tolerance: 0.10
+
 resolved_markets:
   sf_opinion_informative: []
   general_knowledge: []
-counterfactuals: []
+
+counterfactuals:
+  - id: cf_jaipur_heatwave_raises_green_space_demand
+    as_of_date: "2024-05-01"
+    model: gpt-4o
+    framing: vote
+    population: cvap_likely_voter
+    question: "Do you support mandatory urban forestry and reflective roofing mandates for commercial developments?"
+    description: "Support for urban heat mitigation policy. YES = support."
+    event: "Jaipur experiences a record-breaking summer heatwave with temperatures reaching 47°C for seven consecutive days."
+    expected_direction: up

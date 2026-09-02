@@ -71,6 +71,9 @@ pub struct BranchState {
 pub fn router(state: AppState) -> Router {
     use tower_http::cors::{Any, CorsLayer};
     let cors = CorsLayer::new().allow_origin(Any).allow_methods(Any).allow_headers(Any);
+    use tower_http::services::ServeDir;
+    let serve_dir = ServeDir::new("frontend");
+
     Router::new()
         .route("/health", get(health))
         .route("/", get(root))
@@ -88,6 +91,7 @@ pub fn router(state: AppState) -> Router {
         .route("/branches/:bid/poll", post(branch_poll))
         .route("/branches/:bid/predict-market", post(predict_market))
         .route("/branches/:bid/stream", get(branch_stream))
+        .fallback_service(serve_dir)
         .layer(cors)
         .with_state(state)
 }
@@ -811,21 +815,41 @@ pub fn build_state(_tiles_path: &str, cache_path: Option<&str>, state_db: &str) 
 
     let mut cities: HashMap<String, Arc<CityRuntime>> = HashMap::new();
 
-    // Indian cities load when their data/cities/<slug>.toml + tiles.db + PUMS subset exist.
-    for slug in ["mumbai", "delhi", "kolkata", "bangalore", "jaipur"] {
+    // Dynamically discover all cities from data/cities/*.toml + "sf" fallback
+    let default_city_name = std::env::var("DEFAULT_CITY").unwrap_or_else(|_| "mumbai".to_string());
+    let mut slugs = Vec::new();
+    if let Ok(entries) = std::fs::read_dir("data/cities") {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().map_or(false, |ext| ext == "toml") {
+                if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+                    slugs.push(stem.to_string());
+                }
+            }
+        }
+    }
+    if !slugs.contains(&"sf".to_string()) && std::path::Path::new("tiles.db").exists() {
+        slugs.push("sf".to_string());
+    }
+    slugs.sort();
+
+    for slug in &slugs {
         match load_city_runtime(slug) {
             Ok(rt) => {
                 tracing::info!("loaded city {slug}: {} PUMS records", rt.records.len());
-                cities.insert(slug.to_string(), Arc::new(rt));
+                cities.insert(slug.clone(), Arc::new(rt));
             }
             Err(e) => tracing::info!("city {slug} not loaded ({e:#}); skipping"),
         }
     }
 
     let default_rt = cities
-        .get("mumbai")
+        .get(&default_city_name)
+        .or_else(|| cities.values().next())
         .cloned()
-        .ok_or_else(|| anyhow::anyhow!("default city 'mumbai' failed to load"))?;
+        .ok_or_else(|| anyhow::anyhow!("no valid city loaded (checked {})", default_city_name))?;
+
+    let resolved_default = default_rt.profile.slug.clone();
 
     Ok(AppState {
         client,
@@ -833,7 +857,7 @@ pub fn build_state(_tiles_path: &str, cache_path: Option<&str>, state_db: &str) 
         tiles: default_rt.tiles.clone(),
         records: default_rt.records.clone(),
         cities: Arc::new(cities),
-        default_city: "mumbai".to_string(),
+        default_city: resolved_default,
         store,
         sims: Arc::new(Mutex::new(HashMap::new())),
         model_ok: Arc::new(Mutex::new(None)),

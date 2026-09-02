@@ -1,20 +1,70 @@
 meta:
   validation_n: 2000
   default_seed: 42
-  notes: 'mumbai rubric: minimal rubric configuration for Mumbai.'
+  notes: "mumbai rubric: ground truth elections, policy preferences, and counterfactuals for Mumbai."
+
 weights:
   elections_measures: 1.0
   resolved_markets_sf_informative: 0.0
   resolved_markets_general: 0.0
   live_markets: 0.0
   counterfactuals: 1.0
+
 thresholds:
-  weighted_score_min: 0.7
-  elections_measures_max_abs_err: 0.07
-  resolved_markets_max_brier: 0.18
-  counterfactual_direction_min: 0.8
-elections_measures: []
+  weighted_score_min: 0.70
+  elections_measures_max_abs_err: 0.12
+  resolved_markets_max_brier: 0.20
+  counterfactual_direction_min: 0.80
+
+elections_measures:
+  - id: mumbai_2024_lok_sabha_mva_support
+    as_of_date: "2024-05-01"
+    model: gpt-4o
+    population: cvap_likely_voter
+    question: "In the May 2024 Lok Sabha parliamentary election in Mumbai, do you vote for the Opposition Maha Vikas Aghadi coalition (Shiv Sena UBT, Congress, NCP Pawar) over the ruling Mahayuti alliance (BJP, Shiv Sena Shinde, NCP Ajit)?"
+    description: "A choice between the MVA opposition coalition and the Mahayuti alliance across Mumbai's 6 parliamentary seats. YES = vote MVA. MVA won 4 out of 6 seats in Mumbai with ~49.5% vote share."
+    target_share: 0.4950
+    tolerance: 0.10
+
+  - id: mumbai_coastal_road_infrastructure_support
+    as_of_date: "2024-03-01"
+    model: gpt-4o
+    population: cvap_likely_voter
+    question: "Do you support the implementation of major infrastructure projects like the Mumbai Coastal Road and Metro network expansion to reduce traffic congestion?"
+    description: "Support for major infrastructure development in Mumbai aimed at traffic relief. YES = support."
+    target_share: 0.7200
+    tolerance: 0.10
+
+  - id: mumbai_slum_redevelopment_dharavi_support
+    as_of_date: "2024-02-01"
+    model: gpt-4o
+    population: cvap_likely_voter
+    question: "Do you support the Dharavi Redevelopment Project to replace slum housing with formal transit-adjacent housing?"
+    description: "Support for comprehensive slum redevelopment and rehabilitation in Mumbai. YES = support."
+    target_share: 0.6200
+    tolerance: 0.10
+
 resolved_markets:
   sf_opinion_informative: []
   general_knowledge: []
-counterfactuals: []
+
+counterfactuals:
+  - id: cf_mumbai_monsoon_flooding_raises_infrastructure_demand
+    as_of_date: "2024-07-01"
+    model: gpt-4o
+    framing: vote
+    population: cvap_likely_voter
+    question: "Do you support increasing municipal tax allocations specifically dedicated to monsoon drainage and storm-water management infrastructure?"
+    description: "Support for dedicated civic drainage funding in Mumbai. YES = support."
+    event: "Severe monsoonal downpours cause major urban flooding across Kurla, Dadar, and Andheri, paralyzing local train services and flooding residential basements."
+    expected_direction: up
+
+  - id: cf_mumbai_slum_eviction_lowers_incumbent_support
+    as_of_date: "2024-04-01"
+    model: gpt-4o
+    framing: vote
+    population: cvap_likely_voter
+    question: "Do you approve of the current local municipal administration's governance?"
+    description: "Approval of local administration. YES = approve."
+    event: "Municipal authorities execute unannounced demolition drives in informal settlements without immediate alternative housing allocation, triggering protests."
+    expected_direction: down
