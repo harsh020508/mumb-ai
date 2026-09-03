@@ -828,9 +828,6 @@ pub fn build_state(_tiles_path: &str, cache_path: Option<&str>, state_db: &str) 
             }
         }
     }
-    if !slugs.contains(&"sf".to_string()) && std::path::Path::new("tiles.db").exists() {
-        slugs.push("sf".to_string());
-    }
     slugs.sort();
 
     for slug in &slugs {
@@ -869,3 +866,4 @@ pub fn build_state(_tiles_path: &str, cache_path: Option<&str>, state_db: &str) 
 use crate::state as _state;
 #[allow(dead_code)]
 fn _touch(_: AgentState, _: SimState) {}
+

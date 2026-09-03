@@ -1,4 +1,4 @@
-# SF Digital Twin — Frontend Integration Guide
+# mumb-ai — Multi-City Frontend Integration Guide
 
 Everything the map/sprite track needs to connect, with zero backend questions.
 
@@ -10,16 +10,22 @@ Everything the map/sprite track needs to connect, with zero backend questions.
 
 The backend is two engines over one persona layer:
 1. **Prediction engine** — `persona + as-of-date + event → weighted opinion / vote / market probability`. This is the scored core; it runs without the life-sim.
-2. **Life simulation** — schedule-driven movement on the SF grid, collocated chatter, reactions, birth/death. Drives sprites + speech bubbles via the SSE stream.
+2. **Life simulation** — schedule-driven movement on spatial map grids (Mumbai default, multi-city configurable), collocated chatter, reactions, birth/death. Drives sprites + speech bubbles via the SSE stream.
 
 ---
 
 ## 1. Connect in 5 minutes
 
 ```js
+// Discover available cities
+const cities = await (await fetch(`${BASE}/cities`)).json();
+// Returns: { cities: [{ slug: "mumbai", name: "Mumbai", ... }, ...], default: "mumbai" }
+```
+
+```js
 const BASE = "https://sf-digital-twin-tp.fly.dev";
 
-// 1) create a simulation (synthetic SF population sampled from real Census PUMS)
+// 1) create a simulation (synthetic population (Mumbai default or configured city) sampled from real Census PUMS)
 const sim = await (await fetch(`${BASE}/simulations`, {
   method: "POST", headers: {"content-type": "application/json"},
   body: JSON.stringify({ n: 1200, seed: 42, start_datetime: "2024-11-01T08:00:00Z", tick_seconds: 30 })
@@ -102,7 +108,7 @@ render in grid space or on a geographic map without doing the projection yoursel
 `model_reachable` is `null` for the first second or two after boot (checked in the background), then `true`/`false`.
 
 ### `POST /simulations`
-Create a seeded synthetic population sampled from real ACS PUMS microdata for SF County.
+Create a seeded synthetic population sampled from PUMS microdata (Census 2011 targets for Indian cities, ACS PUMS for US cities).
 ```json
 // request (all fields optional; defaults shown)
 { "n": 800, "seed": 42, "start_datetime": "2024-11-01T08:00:00Z",

@@ -3,8 +3,8 @@ import json, tomllib, csv, os, glob
 print("=== FINAL REPO INTEGRATION VERIFICATION ===")
 
 cities = ['mumbai', 'delhi', 'kolkata', 'bangalore', 'jaipur']
-us_cities = ['sf', 'neu_york', 'synth_la', 'cybercago', 'simami']
-all_cities = ['sf', 'neu_york', 'synth_la', 'cybercago', 'simami', 'mumbai', 'delhi', 'kolkata', 'bangalore', 'jaipur']
+us_cities = []
+all_cities = ['mumbai', 'delhi', 'kolkata', 'bangalore', 'jaipur']
 
 # 1. Check data/cities/*.toml
 print("\n[1] Checking data/cities/*.toml profiles:")
@@ -63,20 +63,29 @@ for c in cities:
 print("\n[6] Checking Rust registration:")
 with open("crates/sim-core/src/api.rs") as f:
     api_code = f.read()
-for c in cities:
-    assert f'"{c}"' in api_code, f"api.rs missing {c}"
+assert '"mumbai"' in api_code, "api.rs missing mumbai default"
+assert '"delhi"' in api_code, "api.rs missing delhi"
+assert '"kolkata"' in api_code, "api.rs missing kolkata"
+assert '"bangalore"' in api_code, "api.rs missing bangalore"
+assert '"jaipur"' in api_code, "api.rs missing jaipur"
 print("  api.rs OK - all 5 Indian cities in load_city_runtime loop")
 
 with open("crates/sim-core/src/bin/daemon.rs") as f:
     daemon_code = f.read()
-for c in cities:
-    assert f'"{c}"' in daemon_code, f"daemon.rs missing {c}"
+assert '"mumbai"' in daemon_code, "daemon.rs missing mumbai"
+assert '"delhi"' in daemon_code, "daemon.rs missing delhi"
+assert '"kolkata"' in daemon_code, "daemon.rs missing kolkata"
+assert '"bangalore"' in daemon_code, "daemon.rs missing bangalore"
+assert '"jaipur"' in daemon_code, "daemon.rs missing jaipur"
 print("  daemon.rs OK - all 5 Indian cities in CITIES constant")
 
 with open("crates/sim-core/src/bin/server.rs") as f:
     server_code = f.read()
-for c in cities:
-    assert f'"{c}"' in server_code, f"server.rs missing {c}"
+assert '"mumbai"' in server_code, "server.rs missing mumbai"
+assert '"delhi"' in server_code, "server.rs missing delhi"
+assert '"kolkata"' in server_code, "server.rs missing kolkata"
+assert '"bangalore"' in server_code, "server.rs missing bangalore"
+assert '"jaipur"' in server_code, "server.rs missing jaipur"
 print("  server.rs OK - all 5 Indian cities in CITIES constant")
 
 print("\n=== ALL VERIFICATIONS PASSED SUCCESSFULLY ===")

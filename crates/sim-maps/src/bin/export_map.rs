@@ -43,7 +43,7 @@ struct Cli {
     #[arg(short, long, default_value = "/tmp/map")]
     out: PathBuf,
 
-    /// Output filename prefix, e.g. "neu_york" -> neu_york_tiles.png.
+    /// Output filename prefix, e.g. "mumbai" -> mumbai_tiles.png.
     #[arg(long, default_value = "sf")]
     name: String,
 
@@ -445,3 +445,4 @@ fn fill_atlas_bg(dst: &mut RgbImage, atlas: &DynamicImage, class: SemanticClass,
     let _ = px_size;
     for px in dst.pixels_mut() { *px = bg; }
 }
+

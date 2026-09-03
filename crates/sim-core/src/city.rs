@@ -10,13 +10,13 @@ use std::path::Path;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct CityProfile {
-    /// Internal id, e.g. "sf", "neu_york".
+    /// Internal id, e.g. "mumbai", "delhi".
     pub slug: String,
-    /// Playful UI name, e.g. "sim francisco", "neu york".
+    /// Playful UI name, e.g. "mumbai", "delhi".
     pub display: String,
-    /// Real-world city name used in LLM prompts, e.g. "San Francisco", "New York City".
+    /// Real-world city name used in LLM prompts, e.g. "Mumbai", "Delhi".
     pub prompt_name: String,
-    /// Resident demonym used in persona prose, e.g. "San Franciscan".
+    /// Resident demonym used in persona prose, e.g. "Mumbaikar".
     pub demonym: String,
     /// County/core PUMA codes (2020 vintage) covered by this city.
     pub pumas: Vec<u32>,
@@ -90,11 +90,6 @@ impl CityProfile {
 
     /// Load `data/cities/<slug>.toml` (relative to the workspace root / CWD).
     pub fn load(slug: &str) -> anyhow::Result<Self> {
-        if slug == "sf" {
-            // SF is the hardcoded source of truth (and the committed tiles.db lives at the
-            // repo root, not under artifacts/). Prefer it even if a file is also present.
-            return Ok(Self::sf());
-        }
         Self::from_file(Path::new(&format!("data/cities/{slug}.toml")))
     }
 
@@ -212,3 +207,5 @@ Use ONLY knowledge available on the given date. Respond with STRICT JSON only, n
         }
     }
 }
+
+

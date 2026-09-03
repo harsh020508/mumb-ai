@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
-Generate synthetic PUMS-like data for Mumbai matching Census 2011 targets.
+Generate synthetic PUMS-formatted microdata for Mumbai matching Census 2011 targets.
+
+NOTE ON METHODOLOGY:
+Marginal probabilities for each variable (age, sex, religion, literacy, SC/ST status, PUMA)
+are matched to official Census 2011 targets. The joint distribution across variables is generated
+independently per variable (marginal alignment), rather than sampled from unified joint microdata.
 """
 
 import csv

@@ -13,7 +13,7 @@ for city in ['mumbai', 'delhi', 'kolkata', 'bangalore', 'jaipur']:
 
 # Check news files
 import json, os
-for city in ['mumbai', 'delhi', 'kolkata', 'bangalore', 'jaipur', 'sf', 'neu_york', 'simami', 'cybercago', 'synth_la']:
+for city in ['mumbai', 'delhi', 'kolkata', 'bangalore', 'jaipur']:
     path = f'data/news/{city}.json'
     if os.path.exists(path):
         with open(path) as f:

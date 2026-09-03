@@ -21,10 +21,10 @@ SHP = "/tmp/gaz"  # tl_2023_<fips>_puma20 shapefiles unzipped into <fips>st / fl
 
 # slug -> (state shapefile dir, shapefile basename, wgs84 bbox W,S,E,N)
 CITIES = {
-    "neu_york":  ("36st",  "tl_2023_36_puma20", (-74.05, 40.55, -73.70, 40.92)),
-    "synth_la":  ("06st",  "tl_2023_06_puma20", (-118.62, 33.93, -118.16, 34.25)),
-    "cybercago": ("17st",  "tl_2023_17_puma20", (-87.85, 41.64, -87.52, 42.02)),
-    "simami":    ("fl12",  "tl_2023_12_puma20", (-80.33, 25.62, -80.10, 25.93)),
+    # "neu_york":  ("36st",  "tl_2023_36_puma20", (-74.05, 40.55, -73.70, 40.92)),
+    # "synth_la":  ("06st",  "tl_2023_06_puma20", (-118.62, 33.93, -118.16, 34.25)),
+    # "cybercago": ("17st",  "tl_2023_17_puma20", (-87.85, 41.64, -87.52, 42.02)),
+    # "simami":    ("fl12",  "tl_2023_12_puma20", (-80.33, 25.62, -80.10, 25.93)),
 }
 RADIUS_MIN, RADIUS_MAX = 4, 18
 
@@ -205,3 +205,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

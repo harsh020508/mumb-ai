@@ -104,3 +104,9 @@ real finding the loop then fixed — exactly what the gate is for:
   passes /health + the full endpoint contract test. Verifier + critic both sign off: no leakage, no
   gaming, no overfitting. Prop 36 (0.46) and Prop 33 (0.56) remain transparent anti-prior misses, kept
   and fully weighted.
+
+
+### iter 5 — Indian Megacities Pivot (mumb-ai) & Multi-City Reproducibility
+- **Multi-City Engine (`crates/sim-core/src/city.rs`):** Extracted city profile loading to TOML configurations (`data/cities/*.toml`). 5 Indian megacities added: Mumbai, Delhi, Kolkata, Bangalore, Jaipur.
+- **Indian Synthetic Microdata Methodology:** Synthetic PUMS records (`data/<city>_pums.csv`) match Census 2011 marginal targets (age groups, female per 1000 male sex ratio, religion percentages, literacy rate, SC/ST proportions, ward/PUMA definitions). Note: Variable joint distributions are generated via independent marginal alignment rather than sampled from unified joint survey microdata.
+- **Map Tile Database Reproducibility:** Pre-rendered SQLite spatial map tiles (`server_tiles/*.db`) committed and unignored in git for clean, reproducible Docker/CI builds across all 5 Indian cities.

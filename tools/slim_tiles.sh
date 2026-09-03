@@ -15,10 +15,10 @@ mkdir -p server_tiles
 
 # slug:source-full-tiles.db pairs (portable; no associative arrays for bash 3.2)
 PAIRS="sf:tiles.db \
-neu_york:artifacts/tiles_neu_york.db \
-synth_la:artifacts/tiles_synth_la.db \
-cybercago:artifacts/tiles_cybercago.db \
-simami:artifacts/tiles_simami.db"
+mumbai:server_tiles/mumbai.db \
+delhi:server_tiles/delhi.db \
+kolkata:server_tiles/kolkata.db \
+bangalore:server_tiles/bangalore.db"
 
 for pair in $PAIRS; do
   slug="${pair%%:*}"
@@ -51,3 +51,4 @@ SQL
   printf "  %-10s %s -> %s  (%s)\n" "$slug" "$(du -h "$src" | cut -f1)" "$out" "$(du -h "$out" | cut -f1)"
 done
 echo "total server_tiles: $(du -sh server_tiles | cut -f1)"
+

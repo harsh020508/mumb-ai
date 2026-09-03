@@ -1,14 +1,12 @@
-//! ACS PUMS person-microdata ingest for San Francisco County.
+//! Person-microdata ingest and synthetic population loading for multi-city simulations.
 //!
-//! We sample agents from real joint microdata so the joint distribution over age,
-//! sex, race/ethnicity, education, income, occupation, citizenship, marital status
-//! comes for free. Every record carries the PUMS person weight `PWGTP`, which all
-//! population estimates use.
+//! Supports both real joint microdata (e.g. US Census ACS 1-Year PUMS for San Francisco,
+//! LA, NYC) and marginal-aligned synthetic microdata for Indian mega-cities (Mumbai, Delhi,
+//! Kolkata, Bangalore, Jaipur) matching Census 2011 targets. Every record carries the
+//! person weight `PWGTP`, which all population estimates use.
 //!
-//! Source: Census ACS 1-Year PUMS flat file (csv_pca.zip → psam_p06.csv), filtered
-//! to the 8 SF County PUMAs (07507–07514). The `ingest_pums` binary writes the
-//! filtered SF subset to `data/sf_pums.csv` (committed) so the server/validate are
-//! self-contained and need no network at runtime.
+//! Committed CSV files live in `data/<city>_pums.csv` so the server and validation engine
+//! are self-contained and require no network requests at runtime.
 
 use anyhow::{anyhow, Context, Result};
 use std::collections::HashMap;
