@@ -1,13 +1,13 @@
 //! Geography: the `tiles.db` map, coordinate transforms, and home/work placement.
 //!
-//! Grid: 67×60 chunks, 125 cells/chunk, 2 m/cell (LOD 0). Global cell grid is
-//! (67·125)=8375 wide × (60·125)=7500 tall. Cell (0,0) is the NW corner, anchored
-//! at UTM (min_x, max_y); +gx is east, +gy is south. CRS is UTM Zone 10N (EPSG:32610).
+//! Grid dimensions come from each city's tiles.db `meta.manifest` (Mumbai default:
+//! 95×183 chunks, 125 cells/chunk, 2 m/cell, UTM 43N). Cell (0,0) is the NW
+//! corner, anchored at UTM (min_x, max_y); +gx is east, +gy is south.
 //!
 //! Coordinate contract (documented in INTEGRATION.md):
 //!   utm_x = min_x + (gx + 0.5)·m_per_cell
 //!   utm_y = max_y − (gy + 0.5)·m_per_cell
-//! UTM→lat/lng uses the standard inverse transverse-Mercator series for zone 10N.
+//! UTM→lat/lng uses inverse transverse-Mercator for the city's UTM zone.
 
 use anyhow::{Context, Result};
 use rand::Rng;
@@ -95,10 +95,10 @@ impl TilesDb {
             min_y: bbox["min_y"].as_f64().unwrap(),
             max_x: bbox["max_x"].as_f64().unwrap(),
             max_y: bbox["max_y"].as_f64().unwrap(),
-            west: wgs["west"].as_f64().unwrap_or(-122.5247),
-            east: wgs["east"].as_f64().unwrap_or(-122.3366),
-            south: wgs["south"].as_f64().unwrap_or(37.6983),
-            north: wgs["north"].as_f64().unwrap_or(37.8312),
+            west: wgs["west"].as_f64().unwrap_or(72.77),
+            east: wgs["east"].as_f64().unwrap_or(72.99),
+            south: wgs["south"].as_f64().unwrap_or(18.87),
+            north: wgs["north"].as_f64().unwrap_or(19.28),
             cells_per_chunk,
             meters_per_cell,
             chunks_x,

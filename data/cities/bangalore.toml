@@ -53,26 +53,26 @@ label = "Electronic City / Bommanahalli / Hosur Road"
 
 [[centroids]]
 puma = 2900100
-cx = 50
-cy = 50
+cx = 64
+cy = 74
 radius = 14
 [[centroids]]
 puma = 2900101
-cx = 60
-cy = 45
+cx = 79
+cy = 72
 radius = 14
 [[centroids]]
 puma = 2900102
-cx = 56
-cy = 58
+cx = 74
+cy = 91
 radius = 16
 [[centroids]]
 puma = 2900103
-cx = 72
-cy = 40
+cx = 127
+cy = 76
 radius = 18
 [[centroids]]
 puma = 2900105
-cx = 45
-cy = 62
+cx = 54
+cy = 96
 radius = 16

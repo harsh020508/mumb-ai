@@ -1,4 +1,4 @@
-//! Axum HTTP server for the SF digital twin. Binds 0.0.0.0:$PORT (default 8080) so it
+//! Axum HTTP server for the mumb-ai digital twin. Binds 0.0.0.0:$PORT (default 8080) so it
 //! runs on fly.io. Loads `.env` for local dev; fly injects secrets as env vars.
 
 use simfrancisco::api;

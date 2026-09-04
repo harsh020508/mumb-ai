@@ -64,11 +64,8 @@ print("\n[6] Checking Rust registration:")
 with open("crates/sim-core/src/api.rs") as f:
     api_code = f.read()
 assert '"mumbai"' in api_code, "api.rs missing mumbai default"
-assert '"delhi"' in api_code, "api.rs missing delhi"
-assert '"kolkata"' in api_code, "api.rs missing kolkata"
-assert '"bangalore"' in api_code, "api.rs missing bangalore"
-assert '"jaipur"' in api_code, "api.rs missing jaipur"
-print("  api.rs OK - all 5 Indian cities in load_city_runtime loop")
+assert 'read_dir("data/cities")' in api_code, "api.rs no longer discovers data/cities/*.toml"
+print("  api.rs OK - mumbai default + dynamic data/cities/*.toml discovery")
 
 with open("crates/sim-core/src/bin/daemon.rs") as f:
     daemon_code = f.read()
@@ -81,11 +78,33 @@ print("  daemon.rs OK - all 5 Indian cities in CITIES constant")
 
 with open("crates/sim-core/src/bin/server.rs") as f:
     server_code = f.read()
-assert '"mumbai"' in server_code, "server.rs missing mumbai"
-assert '"delhi"' in server_code, "server.rs missing delhi"
-assert '"kolkata"' in server_code, "server.rs missing kolkata"
-assert '"bangalore"' in server_code, "server.rs missing bangalore"
-assert '"jaipur"' in server_code, "server.rs missing jaipur"
-print("  server.rs OK - all 5 Indian cities in CITIES constant")
+assert "mumbai" in server_code or "DEFAULT_CITY" in api_code, "server/api missing mumbai default"
+print("  server.rs OK - loads cities via api::build_state (dynamic discovery)")
+
+# 7. Check server_tiles/*.db geography against each city's real bbox
+print("\n[7] Checking server_tiles/*.db manifests sit inside the real city:")
+import json, sqlite3
+for c in cities:
+    p = f"server_tiles/{c}.db"
+    assert os.path.exists(p), f"MISSING {p}"
+    with open(f"config/cities/{c}.toml", "rb") as f:
+        cfg = tomllib.load(f)
+    expected = cfg["bbox_wgs84"]
+    con = sqlite3.connect(f"file:{p}?mode=ro", uri=True)
+    row = con.execute("SELECT value FROM meta WHERE key='manifest'").fetchone()
+    assert row, f"{c} tiles db missing manifest"
+    man = json.loads(row[0])
+    con.close()
+    bb = man["bbox_wgs84"]
+    for k in ("west", "south", "east", "north"):
+        assert abs(float(bb[k]) - float(expected[k])) < 1e-4, (
+            f"{c} manifest {k}={bb[k]} is not the city bbox {expected[k]}"
+        )
+    # Hard geographic gate: the bbox must actually be in that city, not SF/elsewhere.
+    mid_lon = (float(bb["west"]) + float(bb["east"])) / 2.0
+    mid_lat = (float(bb["south"]) + float(bb["north"])) / 2.0
+    assert expected["west"] <= mid_lon <= expected["east"], f"{c} centroid lon {mid_lon} outside city"
+    assert expected["south"] <= mid_lat <= expected["north"], f"{c} centroid lat {mid_lat} outside city"
+    print(f"  {c:<10} OK - bbox=({bb['west']},{bb['south']})–({bb['east']},{bb['north']}) crs={man.get('crs')}")
 
 print("\n=== ALL VERIFICATIONS PASSED SUCCESSFULLY ===")

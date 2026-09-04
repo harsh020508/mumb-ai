@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────
-// SimFrancisco · pixel-map frontend · configuration
+// mumb-ai · pixel-map frontend · configuration
 // ─────────────────────────────────────────────────────────────────────────
 
 // Backend (see ../INTEGRATION.md). CORS is wide-open, so browser fetch works.

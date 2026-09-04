@@ -815,7 +815,7 @@ pub fn build_state(_tiles_path: &str, cache_path: Option<&str>, state_db: &str) 
 
     let mut cities: HashMap<String, Arc<CityRuntime>> = HashMap::new();
 
-    // Dynamically discover all cities from data/cities/*.toml + "sf" fallback
+    // Dynamically discover all cities from data/cities/*.toml
     let default_city_name = std::env::var("DEFAULT_CITY").unwrap_or_else(|_| "mumbai".to_string());
     let mut slugs = Vec::new();
     if let Ok(entries) = std::fs::read_dir("data/cities") {

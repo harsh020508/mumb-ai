@@ -1,5 +1,5 @@
-# SF Procedural RPG Tilemap Pipeline — configuration
-# All spatial values are in EPSG:32610 (UTM Zone 10N) unless noted.
+# Default pipeline config (San Francisco historical artifact).
+# Per-city Indian maps live in config/cities/*.toml and use their own UTM zones.
 
 [pipeline]
 meters_per_cell = 2.0       # cell resolution

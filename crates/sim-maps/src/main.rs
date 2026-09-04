@@ -18,7 +18,7 @@ use topo::apply_topography;
 use types::{ChunkCoord, Grid, SemanticClass};
 
 #[derive(Parser, Debug)]
-#[command(name = "pipeline", about = "SF RPG tilemap pipeline")]
+    #[command(name = "pipeline", about = "mumb-ai RPG tilemap pipeline")]
 struct Cli {
     /// Path to pipeline.toml config file
     #[arg(short, long, default_value = "config/pipeline.toml")]

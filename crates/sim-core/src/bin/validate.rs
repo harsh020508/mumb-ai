@@ -52,7 +52,7 @@ async fn main() {
 
 async fn run(args: Args) -> i32 {
     let rubric_path = args.rubric.clone().unwrap_or_else(|| {
-        if args.city == "sf" { "rubric.yaml".into() } else { format!("rubric_{}.yaml", args.city) }
+        format!("rubric_{}.yaml", args.city)
     });
     let rubric = match Rubric::load(&rubric_path) {
         Ok(r) => r,

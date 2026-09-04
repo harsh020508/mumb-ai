@@ -62,26 +62,26 @@ label = "New Delhi Railway fringe / Paharganj / Karol Bagh"
 
 [[centroids]]
 puma = 700700
-cx = 30
-cy = 30
+cx = 150
+cy = 89
 radius = 14
 [[centroids]]
 puma = 700704
-cx = 40
-cy = 50
+cx = 146
+cy = 119
 radius = 12
 [[centroids]]
 puma = 700705
-cx = 38
-cy = 62
+cx = 146
+cy = 148
 radius = 16
 [[centroids]]
 puma = 700707
-cx = 20
-cy = 40
+cx = 113
+cy = 107
 radius = 14
 [[centroids]]
 puma = 700708
-cx = 22
-cy = 24
+cx = 103
+cy = 65
 radius = 16

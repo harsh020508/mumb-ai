@@ -75,7 +75,7 @@ const pickFrom = (rng, arr) => arr[(rng() * arr.length) | 0];
 
 // active city slug — the SF-specific neighbourhood flavour only applies to SF;
 // every other city's residents get the LLM thought (or the neutral fallback).
-let CITY = "sf";
+let CITY = "mumbai";
 
 function makeThought(a, id) {
   const rng = mulberry32((id >>> 0) * 2654435761 + 12345);

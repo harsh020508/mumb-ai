@@ -78,44 +78,44 @@
           </svg>
           <span id="ask-label" class="ask-label">ask</span>
           <textarea id="ask-input" class="ask-input" rows="1" autocomplete="off" spellcheck="false"
-                    placeholder="predict anything — e.g. will a Democrat win the 2026 California governor race?"
+                     placeholder="predict anything — e.g. will MVA win Mumbai's next BMC election?"
                     aria-label="Predict anything"></textarea>
           <kbd class="ask-enter" aria-hidden="true">↵</kbd>
         </div>
-        <button id="info-btn" class="info-btn" aria-label="About sim francisco" title="About">?</button>
+        <button id="info-btn" class="info-btn" aria-label="About mumb-ai" title="About">?</button>
       </div>
     </div>
 
     <!-- about card (opened by the ? button) -->
     <div id="about-scrim" class="about-scrim hidden"></div>
-    <div id="about" class="about hidden" role="dialog" aria-modal="true" aria-label="About sim francisco">
+    <div id="about" class="about hidden" role="dialog" aria-modal="true" aria-label="About mumb-ai">
       <button id="about-close" class="about-close" aria-label="Close">×</button>
       <div class="about-title">mumb-ai</div>
       <div class="about-sub">simulate and predict public opinion across Indian megacities & beyond</div>
 
       <div class="about-h">The pitch</div>
       <p>What if you could predict how your customers responded to releases before they went out into the real world? Or if you could get a signal on who will win an election?</p>
-      <p>We simulated the population of San Francisco distributed across real US Census data and achieved near-parity with these types of real-world events.</p>
+      <p>We simulated the population of Mumbai — and four other Indian megacities — distributed across Census 2011 aligned synthetic microdata and scored predictions against real elections and policy measures.</p>
       <p>It spans <b>five Indian megacities</b> — <b>mumbai</b>, <b>delhi</b>, <b>kolkata</b>, <b>bangalore</b>, and <b>jaipur</b> — each with Census 2011 aligned synthetic microdata. Switch between them from the title in the top-left.</p>
 
       <div class="about-h">Historically predictive</div>
-      <p>How do we know if our simulation of SF is accurate? The honest test needs a model whose knowledge cutoff <i>predates</i> the event, so it can't have just memorized the outcome. The older Claude models with a 2023 cutoff have since been <b>retired</b> — so for this leakage-free backtest we ran <b>GPT-4o</b> (knowledge cutoff <b>October 2023</b>) and asked the twin city to predict results it had never seen. (The live app you're using runs the current <b>Claude Sonnet 4.6</b>.)</p>
+      <p>How do we know if our simulation of Mumbai is accurate? The honest test needs a model whose knowledge cutoff <i>predates</i> the event, so it can't have just memorized the outcome. The older Claude models with a 2023 cutoff have since been <b>retired</b> — so for this leakage-free backtest we ran <b>GPT-4o</b> (knowledge cutoff <b>October 2023</b>) and asked the twin city to predict results it had never seen. (The live app you're using runs the current <b>Claude Sonnet 4.6</b>.)</p>
 
       <div class="about-ex">
-        <div class="about-ex-title"><i>2024 Presidency</i></div>
-        <div class="about-ex-q">In November 2024 do you vote for the Democratic presidential ticket (Harris) over the Republican (Trump)?</div>
-        <div class="about-ex-nums"><span class="actual">Actual: 83.8% Dem</span><span class="pred">Predicted: 81.3% Dem</span></div>
+        <div class="about-ex-title"><i>2024 Lok Sabha · Mumbai</i></div>
+        <div class="about-ex-q">In the May 2024 Lok Sabha election in Mumbai, do you vote for the Opposition Maha Vikas Aghadi coalition over the ruling Mahayuti alliance?</div>
+        <div class="about-ex-nums"><span class="actual">Actual: 49.5% MVA</span><span class="pred">scored in rubric_mumbai.yaml</span></div>
       </div>
 
       <div class="about-ex">
-        <div class="about-ex-title"><i>March 2024 · Proposition A</i></div>
-        <div class="about-ex-q">There's a measure on your March ballot, Proposition A, that would let the City borrow up to $300 million through general obligation bonds to build and preserve affordable housing — for low-income families, seniors, and working residents. It's backed by Mayor Breed and would need a two-thirds supermajority to pass. Are you voting yes or no?</div>
-        <div class="about-ex-nums"><span class="actual">Actual: 70.38% yes</span><span class="pred">Predicted: 70% yes</span></div>
+        <div class="about-ex-title"><i>Dharavi Redevelopment</i></div>
+        <div class="about-ex-q">Do you support the Dharavi Redevelopment Project to replace slum housing with formal transit-adjacent housing?</div>
+        <div class="about-ex-nums"><span class="actual">target: 62% yes</span><span class="pred">scored in rubric_mumbai.yaml</span></div>
       </div>
 
       <div class="about-h">The future</div>
       <p>All of decision-making is predicated on our understanding of causality. How will the choices we make influence the world? How will people react?</p>
-      <p>To enable (first) SF, and then the world, to understand the causal nature of reality, we present <span class="about-name">sim francisco</span>.</p>
+      <p>To enable (first) Mumbai, and then the world, to understand the causal nature of reality, we present <span class="about-name">mumb-ai</span>.</p>
 
       <div class="about-credit">
         Built by <a href="https://tejasprabhune.github.io" target="_blank" rel="noopener noreferrer"><b>Tejas Prabhune</b></a> and <a href="https://tanmayi2.github.io/" target="_blank" rel="noopener noreferrer"><b>Tanmayi Dasari</b></a> · 2nd place, <b>Claude Build Day</b> (June 13, 2026).

@@ -1,4 +1,4 @@
-# Multi-stage Rust build for the SF digital-twin server (debian-slim runtime).
+# Multi-stage Rust build for the mumb-ai digital-twin server (debian-slim runtime).
 FROM rust:1-bookworm AS builder
 WORKDIR /app
 # Workspace manifests + sources. Only the server bin is built; the sim-maps crate

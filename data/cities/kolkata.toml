@@ -74,26 +74,26 @@ label = "Dhakuria / Lake Gardens / Ballygunge"
 
 [[centroids]]
 puma = 1900100
-cx = 40
-cy = 50
+cx = 62
+cy = 57
 radius = 12
 [[centroids]]
 puma = 1900104
-cx = 30
-cy = 52
+cx = 52
+cy = 47
 radius = 14
 [[centroids]]
 puma = 1900105
-cx = 55
-cy = 44
+cx = 96
+cy = 53
 radius = 16
 [[centroids]]
 puma = 1900106
-cx = 44
-cy = 60
+cx = 68
+cy = 77
 radius = 14
 [[centroids]]
 puma = 1900110
-cx = 50
-cy = 48
+cx = 71
+cy = 60
 radius = 10

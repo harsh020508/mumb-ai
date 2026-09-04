@@ -14,11 +14,11 @@ cd "$(dirname "$0")/.."
 mkdir -p server_tiles
 
 # slug:source-full-tiles.db pairs (portable; no associative arrays for bash 3.2)
-PAIRS="sf:tiles.db \
-mumbai:server_tiles/mumbai.db \
-delhi:server_tiles/delhi.db \
-kolkata:server_tiles/kolkata.db \
-bangalore:server_tiles/bangalore.db"
+PAIRS="mumbai:artifacts/tiles_mumbai.db \
+delhi:artifacts/tiles_delhi.db \
+kolkata:artifacts/tiles_kolkata.db \
+bangalore:artifacts/tiles_bangalore.db \
+jaipur:artifacts/tiles_jaipur.db"
 
 for pair in $PAIRS; do
   slug="${pair%%:*}"

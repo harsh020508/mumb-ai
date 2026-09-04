@@ -1,9 +1,11 @@
 # Golden Future Map — Frontend Integration Guide
 
 This document describes every asset, database schema, coordinate system, rendering
-rule, and the character-sprite layout the frontend needs to display the San Francisco
+rule, and the character-sprite layout the frontend needs to display a city
 tilemap and the entities walking on it. It is the source of truth; where it disagrees
 with older notes, trust this file (it matches the `src/render.rs` reference renderer).
+Per-city geography (CRS, bbox, chunk grid) lives in each `server_tiles/<city>.db`
+manifest — do not assume San Francisco numbers.
 
 The art was re-themed to the **LimeZu "Modern Exteriors" 32×32** set. The ground, the
 buildings, and the trees all come from that one cohesive palette. Character sprites use

@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────
-// sim francisco · pixel-map frontend · orchestration
+// mumb-ai · pixel-map frontend · orchestration
 //
 // Flow:  idle → click "ask" (bottom-center) → multiline composer
 //        → submit → branch + poll the electorate (composer shows "predicting…")
@@ -165,7 +165,7 @@ async function loadCity(city) {
 
 function setIdleStatus() {
   const n = state.residents.toLocaleString();
-  const display = (state.city?.display || "san francisco").toLowerCase();
+  const display = (state.city?.display || "mumbai").toLowerCase();
   const kd = state.city?.knowledge_date;
   // the clock = the date up to which the residents know the news (their knowledge cutoff)
   const clock = kd
@@ -259,7 +259,7 @@ function toggleTitleMenu() { titleMenuOpen() ? closeTitleMenu() : openTitleMenu(
 // reflect the active city in the title button + the menu; lock while swapping
 function syncActiveTitle() {
   const city = state.cities.find((c) => c.slug === citySlug());
-  els.titleCurrent.textContent = city?.display || state.city?.display || "sim francisco";
+  els.titleCurrent.textContent = city?.display || state.city?.display || "mumbai";
   els.titleMenu.querySelectorAll(".title-option").forEach((btn) => {
     btn.setAttribute("aria-selected", btn.dataset.slug === citySlug() ? "true" : "false");
     btn.disabled = state.switching;

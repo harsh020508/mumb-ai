@@ -1,7 +1,7 @@
 # mumb-ai — Multi-City Backend Build Brief
 
 **Hand this file to Claude Code (`point at the repo, then /goal` against the rubric).**
-This is the *backend* brief only. The frontend (8-bit SF map, sprites, speech bubbles, reactions) is a separate track; this backend must expose everything that track needs (see §10).
+This is the *backend* brief only. The frontend (8-bit city map, sprites, speech bubbles, reactions) is a separate track; this backend must expose everything that track needs (see §10).
 
 ---
 
@@ -9,14 +9,14 @@ This is the *backend* brief only. The frontend (8-bit SF map, sprites, speech bu
 
 **Wire all four loops below; the workflow scripts in §17 are themselves a judged orchestration artifact. Don't rely on a one-word trigger — early testing showed explicit step-by-step workflows beat them.**
 
-- **Self-correction loop (`/goal`):** *Maximize the weighted score in `rubric.yaml`. Do not stop until (a) `cargo test` is green, (b) `cargo run --bin validate` exits 0 against the committed rubric, and (c) the deployed fly.io URL passes `/health` plus the endpoint-contract tests.* "Done" is machine-checkable; never wait for a human to confirm it. Read your own `validate` scorecard and pick the next experiment yourself.
-- **Verifier + adversarial sub-agents:** before any milestone is "done", spawn a fresh agent (independent context) that re-runs `validate` + contract tests and grades against `rubric.yaml`; spawn a second **adversarial critic** that tries to prove the gain is spurious (overfit to one contest, model-knowledge leakage, weight-gaming). Gate completion on both — independent grading beats self-critique.
-- **Dynamic workflows (§17):** push the loops bigger than one conversation into background JS workflow scripts — the hillclimb loop, parallel prompt/persona tuning, and the batch slide-runs. The script holds the loop, branching, and intermediate results so session context stays clean and holds only the final verified answer. **Save every working run as a rerunnable command** (`/sf:hillclimb`, etc.) — those saved commands are a judged artifact.
+- **Self-correction loop (`/goal`):** *Maximize the weighted score in `rubric_<city>.yaml`. Do not stop until (a) `cargo test` is green, (b) `cargo run --bin validate -- --city mumbai` exits 0 against the committed rubric, and (c) the deployed fly.io URL passes `/health` plus the endpoint-contract tests.* "Done" is machine-checkable; never wait for a human to confirm it. Read your own `validate` scorecard and pick the next experiment yourself.
+- **Verifier + adversarial sub-agents:** before any milestone is "done", spawn a fresh agent (independent context) that re-runs `validate` + contract tests and grades against `rubric_<city>.yaml`; spawn a second **adversarial critic** that tries to prove the gain is spurious (overfit to one contest, model-knowledge leakage, weight-gaming). Gate completion on both — independent grading beats self-critique.
+- **Dynamic workflows (§17):** push the loops bigger than one conversation into background JS workflow scripts — the hillclimb loop, parallel prompt/persona tuning, and the batch slide-runs. The script holds the loop, branching, and intermediate results so session context stays clean and holds only the final verified answer. **Save every working run as a rerunnable command** (`/mumbai:hillclimb`, etc.) — those saved commands are a judged artifact.
 - **Continuous feedback wired in:** add a pre-push / CI hook running `cargo test` + a fast `validate --smoke`. The model should catch its own breakage from the check, not from a human pointing it out — that is exactly what the Autonomy score rewards.
 - **Memory as the outer loop:** keep `NOTES.md` of failures → fixes → general rules (rate-limit handling, prompt patterns that aggregate well, snapshot pitfalls, leakage traps). The workflows append to it; distill mistakes into rules instead of re-deriving them.
-- **Repeatable on a new problem:** the loop is problem-agnostic — swap `rubric.yaml` + the data source and the validate binary, workflows, verifier, and gates are unchanged. Say this in the submission; the Orchestration criterion explicitly asks whether another team could rerun the setup tomorrow on a new problem.
+- **Repeatable on a new problem:** the loop is problem-agnostic — swap `rubric_<city>.yaml` + the data source and the validate binary, workflows, verifier, and gates are unchanged. Say this in the submission; the Orchestration criterion explicitly asks whether another team could rerun the setup tomorrow on a new problem.
 - **Build order is in §13.** Get the verifiable core (prediction engine + rubric) to green *before* layering the full life-sim, so the demo never hinges on the most fragile part.
-- **Verify-at-build-time items are in §16.** Fetch them fresh (PUMS vintage, SF PUMA codes, market endpoints, fly.io deploy, Azure auth header). Pre-answering these in the brief is itself an autonomy lever — fewer mid-task stops to ask a human.
+- **Verify-at-build-time items are in §16.** Fetch them fresh (Census vintage, city PUMA/ward codes, market endpoints, fly.io deploy, Azure auth header). Pre-answering these in the brief is itself an autonomy lever — fewer mid-task stops to ask a human.
 
 ---
 
@@ -24,11 +24,11 @@ This is the *backend* brief only. The frontend (8-bit SF map, sprites, speech bu
 
 **Problem.** Produce a *distributionally accurate* synthetic population of Indian megacities (Mumbai, Delhi, Kolkata, Bangalore, Jaipur) that can be polled and perturbed with events, and that yields population-level predictions: election/ballot-measure outcomes, issue/approval polling, prediction-market probabilities, and counterfactual opinion shifts.
 
-**Who it's for.** Forecasters, campaigns, policy/product teams who want a queryable SF electorate they can run "what if this event happened" experiments against.
+**Who it's for.** Forecasters, campaigns, policy/product teams who want a queryable Indian-city electorate they can run "what if this event happened" experiments against.
 
 **Done looks like:**
 1. `cargo test` green (contract, branching, weighting, marginals-match).
-2. `cargo run --bin validate` exits 0: weighted rubric score ≥ thresholds in `rubric.yaml`.
+2. `cargo run --bin validate -- --city mumbai` exits 0: weighted rubric score ≥ thresholds in `rubric_mumbai.yaml`.
 3. Live fly.io URL: `/health` 200, all documented endpoints respond per contract.
 4. `INTEGRATION.md` written so the frontend team can connect with zero backend questions.
 5. A reproducible batch run at high N (5k–20k) whose outputs are saved (`runs/<id>/`) for the slides.
@@ -40,7 +40,7 @@ This is the *backend* brief only. The frontend (8-bit SF map, sprites, speech bu
 A **shared agent/persona layer** feeds two engines that must be runnable independently:
 
 - **Prediction engine (the scored core).** `persona + as-of-date + event → opinion / vote / probability`, aggregated across agents with survey weights. One (batched) LLM call per question. Cheap, cacheable, deterministic in "clean" mode. This is what `validate` grades. It must run and pass the rubric *without the life-sim running at all.*
-- **Life simulation (the visual demo).** Movement, daily routines, collocated conversations, reflection, birth/death on the SF map. Drives the frontend. LLM cost is bounded by tiering + batching (§5). Conversations can shift agent values and feed back into the prediction engine ("social mode", §4).
+- **Life simulation (the visual demo).** Movement, daily routines, collocated conversations, reflection, birth/death on the city map (Mumbai default). Drives the frontend. LLM cost is bounded by tiering + batching (§5). Conversations can shift agent values and feed back into the prediction engine ("social mode", §4).
 
 Decoupling is mandatory: the prediction engine is a hard dependency of the demo's *impact*; the life-sim is eye-candy + the "interesting" dynamics. Never let the life-sim be a single point of demo failure.
 
@@ -53,9 +53,9 @@ Decoupling is mandatory: the prediction engine is a hard dependency of the demo'
 *Note on Indian Microdata Methodology:* For Indian cities (Mumbai, Delhi, Kolkata, Bangalore, Jaipur), synthetic PUMS records are generated by matching marginal probabilities to Census 2011 targets. Joint distributions across variables are generated via marginal alignment rather than drawn from single joint microdata records. (the key idea: use real joint microdata)
 - Sample agents from **ACS PUMS person microdata** for Indian megacities (Mumbai, Delhi, Kolkata, Bangalore, Jaipur) County. PUMS records are already joint samples over age, sex, race/ethnicity, education, income, occupation/industry, household type, marital status, citizenship — so we get the real joint distribution for free instead of reconstructing it from marginals.
 - **Carry the PUMS person weight (`PWGTP`) on every agent.** All population estimates use these weights (§4.3).
-- **Religion** is not in census: layer it stochastically from public regional data (e.g., Pew Religious Landscape for the SF/Bay Area) conditioned on the agent's demographics.
-- **Geography:** PUMS resolves to PUMA (SF County = a handful of PUMAs — fetch the current codes, §16). Assign a home location by drawing a valid residential cell within the agent's PUMA on the map grid; assign a work location from occupation + commute patterns. Finer-than-PUMA placement uses block-group marginals as a light reweight; do not over-engineer.
-- All data must be **publicly available** (Census/IPUMS, Pew, OSM, SF Dept of Elections, public market APIs). No proprietary/unlicensed data or assets. PUMS is anonymized — no PII.
+- **Religion** is layered from Census 2011 city-level religion weights in `data/cities/*.toml`, conditioned on the agent's demographics.
+- **Geography:** synthetic PUMS resolves to city PUMA/ward codes in `data/cities/*.toml`. Assign a home location by drawing a valid residential cell within the agent's PUMA on the map grid; assign a work location from occupation + commute patterns. Finer-than-PUMA placement uses neighborhood centroids as a light reweight; do not over-engineer.
+- All data must be **publicly available** (Census of India, OSM, ECI results, public market APIs). No proprietary/unlicensed data or assets. PUMS-shaped records are anonymized — no PII.
 
 ### 3.2 Persona generation ("core" / long-term memory)
 For each sampled agent, generate a **seeded, deterministic** backstory from its demographics: schools, hobbies/interests, job history, core values/political-economic leanings, personality traits, media diet. Seed = `hash(simulation_seed, agent_index)` so runs are reproducible. Store a compact **value vector** (e.g., economic L/R, social L/R, trust-in-institutions, change-vs-status-quo, plus issue salience weights) alongside the prose persona — the value vector is what shifts under events and what aggregations and conversations read/write cheaply.
@@ -96,7 +96,7 @@ p_hat(option k) = Σ_i w_i · 1[answer_i = k]  /  Σ_i w_i
 > Reference architecture: Stanford "Generative Agents" (memory stream + retrieval + reflection + planning). That paper ran 25 agents; scaling to thousands requires the cost controls below. **These are load-bearing, not optional.**
 
 ### 5.1 Map
-- Consume `tiles.db` (prepared by the map track): `chunks` table = zstd-compressed `u8` cost array per chunk/LOD; `buildings` table = per-chunk footprints + tier. Grid 67×60 chunks × 250m, 125×125 cells at 2m/cell (LOD 0). UTM Zone 10N (EPSG:32610), bbox `(541826, 4172448)–(558483, 4187294)`.
+- Consume `server_tiles/<city>.db` (prepared by the map track): `chunks` table = zstd-compressed `u8` cost array per chunk/LOD; `buildings` table = per-chunk footprints + tier. Each city uses 250 m chunks, 125×125 cells at 2 m/cell (LOD 0). CRS and WGS-84 bbox come from that city's `meta.manifest` (Mumbai is UTM 43N / EPSG:32643).
 - Cost values: `0` free (roads/sidewalks/plazas), `1` park/shoreline penalty, `2` grass penalty, `8` stairs, `255` blocked (water/buildings/cliffs).
 
 ### 5.2 Pathfinding — deterministic, never LLM
@@ -173,14 +173,14 @@ All endpoints have **contract tests** runnable against the deployed URL.
 The frontend will render hundreds–thousands of sprites moving as their agents, with per-agent reactions (👍/👎) and speech bubbles. Backend must provide:
 - **Snapshot fetch** of agent positions + current action for a branch/tick (paginated; supports thousands).
 - **Stream** (`/branches/{id}/stream`, SSE) emitting typed events: `agent_moved {id, from_cell, to_cell, path?}`, `agent_said {id, text, target_id?}` (speech bubbles), `agent_reacted {id, kind: up|down, event_id}`, `tick {clock}`, `birth`/`death`.
-- **Coordinate contract:** document the cell/chunk ↔ UTM ↔ lat/long mapping and how positions index into the `tiles.db` grid, so sprites land correctly.
+- **Coordinate contract:** document the cell/chunk ↔ UTM ↔ lat/long mapping and how positions index into the per-city `server_tiles/<city>.db` grid, so sprites land correctly.
 - Write all of this in **`INTEGRATION.md`**: base URL, auth (if any), every endpoint with example request/response, the SSE event schema, the coordinate contract, and a minimal "connect in 5 minutes" snippet.
 
 ---
 
 ## 11. Validation and rubric (the model-checkable "done")
 
-- **`rubric.yaml`** (starter provided separately) defines targets + tolerances + weights across categories: `elections_measures`, `resolved_markets` (bucketed `sf_opinion_informative` vs `general_knowledge`), `live_markets` (demo-only agreement, not truth), `counterfactuals`.
+- **`rubric_<city>.yaml`** defines targets + tolerances + weights across categories: `elections_measures`, `resolved_markets` (bucketed `sf_opinion_informative` vs `general_knowledge`), `live_markets` (demo-only agreement, not truth), `counterfactuals`.
 - **`cargo run --bin validate`**: spins a sim at a validation N, runs the polls/market mappings for each rubric entry in `clean` mode at the specified `as_of_date`/model, computes metrics, prints a scorecard, and **exits 0 only if the weighted score ≥ thresholds**.
 - **Metrics:** elections/measures → absolute error on vote share + pass/fail vs tolerance; markets → **Brier score vs resolved outcome** (preferred) and/or agreement vs live price; counterfactuals → correct **direction** + plausible **magnitude**, compared to a real before/after poll where one exists.
 - **Weighting:** markets weighted higher per the team's call, but the headline market score weights the `sf_opinion_informative` bucket; the `general_knowledge` bucket is reported separately and never inflates the headline (the panel is a weak instrument there).
@@ -200,9 +200,9 @@ The frontend will render hundreds–thousands of sprites moving as their agents,
 
 1. **Scaffold + secrets + model client.** Repo, `.env`/`.gitignore`, the two-shape `reqwest` client with semaphore + retry. *Gate:* unit tests hit a tiny live call per model shape (mocked + one real smoke test).
 2. **Agent sampling + personas.** PUMS ingest, seeded persona + value vector, religion layer, home/work assignment. *Gate:* `GET /demographics` shows sampled marginals match ACS targets within tolerance (test).
-3. **Prediction engine + rubric + validate.** Poll/event/aggregation with weights + as-of-date + clean mode; `rubric.yaml`; `validate` binary. *Gate:* hill-climb until `validate` exits 0.
+3. **Prediction engine + rubric + validate.** Poll/event/aggregation with weights + as-of-date + clean mode; `rubric_<city>.yaml`; `validate` binary. *Gate:* hill-climb until `validate -- --city mumbai` exits 0.
 4. **State + branching.** Static/mutable split, snapshots, branch, reset. *Gate:* branch-isolation + reset-roundtrip + hash tests green.
-5. **Life-sim core.** Load `tiles.db`, A\* pathfinding, schedules, positions endpoint + SSE stream. *Gate:* a small sim runs ticks, sprites move on valid cells, stream emits typed events; contract test on `/stream`.
+5. **Life-sim core.** Load `server_tiles/<city>.db`, A\* pathfinding, schedules, positions endpoint + SSE stream. *Gate:* a small sim runs ticks, sprites move on valid cells, stream emits typed events; contract test on `/stream`.
 6. **Generative layer.** Memory stream + retrieval + reflection + batched collocated conversations that shift value vectors; `social` mode feeds the prediction engine. *Gate:* `social` vs `clean` poll divergence is sane; cost stays within budget.
 7. **Deploy + integrate.** fly.io, `/health`, `INTEGRATION.md`, saved batch runs. *Gate:* deployed URL passes `/health` + contract tests; verifier signs off on the full rubric.
 
@@ -216,7 +216,7 @@ The frontend will render hundreds–thousands of sprites moving as their agents,
 
 ## 15. Constraints (banned-project rules)
 
-- Public/own-created data and assets only (Census/IPUMS, Pew, OSM, SF Dept of Elections, public market APIs). No proprietary or unlicensed data/assets.
+- Public/own-created data and assets only (Census of India, OSM, ECI results, public market APIs). No proprietary or unlicensed data/assets.
 - No PII; PUMS is anonymized synthetic-ish microdata. Personas are fabricated.
 - Secrets never committed; `.env` git-ignored; key only from env / fly secret.
 
@@ -224,10 +224,10 @@ The frontend will render hundreds–thousands of sprites moving as their agents,
 
 ## 16. Verify-at-build-time (fetch fresh; do not assume)
 
-1. **ACS PUMS** current 1-yr/5-yr vintage + the download endpoint, and the **PUMA codes for Indian megacities (Mumbai, Delhi, Kolkata, Bangalore, Jaipur) County**.
-2. **Pew** regional religious-composition figures for the SF/Bay Area.
+1. **Census 2011 / synthetic PUMS** marginal targets and the **PUMA/ward codes for Indian megacities (Mumbai, Delhi, Kolkata, Bangalore, Jaipur)**.
+2. **Census religion weights** per city (in `data/cities/*.toml`), not a US Pew overlay.
 3. **Polymarket** public API (markets + resolution) and **Kalshi** API (needs an account/creds — optional if unavailable); pick a curated set per bucket.
-4. **SF Dept of Elections / CA SOS** ground-truth results for the elections/measures in the rubric (precinct/county level).
+4. **ECI / city-election** ground-truth results for the contests in `rubric_<city>.yaml`.
 5. **fly.io** current Rust deployment flow + secrets.
 6. **Azure auth header**: confirm `Authorization: Bearer` vs `api-key:` against the live endpoint with a smoke call.
 7. Confirm model knowledge-cutoffs (GPT-4o earliest) to set counterfactual `as_of_date` windows that minimize leakage.
@@ -239,7 +239,7 @@ The frontend will render hundreds–thousands of sprites moving as their agents,
 Implement these as Claude Code **dynamic workflows** — JS scripts the runtime executes in the background while the session stays free. Use your current dynamic-workflow runtime API; the specs below fix *what fans out, when verification runs, and what gates completion* — make that explicit in each script. Keep deterministic metric math in the Rust `validate` binary (fast, reproducible); the workflows orchestrate the *agentic, parallel* work around it. **Save each working run as a named command** so it's rerunnable and an artifact for the judges.
 
 ### 17.1 `hillclimb` — outer self-correction loop (centerpiece)
-- **Command:** `/sf:hillclimb [--max-iter N] [--budget tokens]`
+- **Command:** `/mumbai:hillclimb [--max-iter N] [--budget tokens]`
 - **Step 1 (gate):** run `cargo run --bin validate`; parse the scorecard. Weighted score ≥ threshold → go to Step 5.
 - **Step 2 (diagnose):** rank failing rubric entries by weighted deficit.
 - **Step 3 (fan-out):** spawn one **fix sub-agent per failing entry** in an isolated context; each may only touch prompt templates, persona generation, aggregation/weighting, or the turnout model — never the rubric targets or the held-out slice. Barrier until all return.
@@ -248,17 +248,17 @@ Implement these as Claude Code **dynamic workflows** — JS scripts the runtime 
 - **Completion gate:** weighted score ≥ threshold AND verifier + critic both pass.
 
 ### 17.2 `tune-prompts` — parallel experiment with an overfit/leakage guard
-- **Command:** `/sf:tune-prompts --variants K --target <persona|poll|reaction>`
+- **Command:** `/mumbai:tune-prompts --variants K --target <persona|poll|reaction>`
 - **Fan-out:** K variants of the chosen template, each run by a sub-agent against a **training slice** of the rubric only.
 - **Selection:** rank on the training slice, then re-score the top few on a **held-out slice** tuning never saw; promote the winner only if it also wins held-out (guards against overfitting to one contest and against baking in model-knowledge leakage).
 - **Completion gate:** winner beats the incumbent on held-out, else keep the incumbent. Log all variants + scores to `runs/tune-<ts>/`.
 
 ### 17.3 `batch-runs` — slide artifacts at scale, in the background
-- **Command:** `/sf:batch-runs --configs configs/*.toml`
+- **Command:** `/mumbai:batch-runs --configs configs/*.toml`
 - **Fan-out:** one large-N (5k–20k) simulation per config (varying N / seed / model-role / event set), run concurrently within the Azure rate budget while the session stays free.
 - **Verification:** each run ends by invoking `validate` on its outputs and writing a scorecard.
 - **Completion gate:** every config produced `runs/<id>/` with snapshot refs, a scorecard, and a token/cost log. These saved runs are the impact evidence for the demo deck.
 
 ### 17.4 Scoring map (state this in the submission)
 - **Autonomy (15%):** the `/goal` "do not stop until" gate + CI hook + verifier/critic mean breakage is caught by checks, not humans; the workflows run long unsupervised stretches.
-- **Orchestration (15%):** `BRIEF.md` + `rubric.yaml` + the saved `/sf:*` commands are simple, repeatable, and make "done" verifiable without a human (tests, responding URL, gradable rubric); swap the rubric + data source to rerun on a new problem tomorrow.
+- **Orchestration (15%):** `BRIEF.md` + `rubric_<city>.yaml` + the saved `/mumbai:*` commands are simple, repeatable, and make "done" verifiable without a human (tests, responding URL, gradable rubric); swap the rubric + data source to rerun on a new problem tomorrow.

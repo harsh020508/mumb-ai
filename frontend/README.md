@@ -1,12 +1,13 @@
-# SimFrancisco — simpler map frontend
+# mumb-ai — pixel-map frontend
 
-A clean, zero-build web app that visualizes SF-wide poll predictions on a map of
-San Francisco. Type a question, and the synthetic electorate's verdict
-accumulates across the city as green (yes) / red (no) dots.
+A clean, zero-build web app that visualizes city-wide poll predictions on a map
+of Mumbai (switchable to Delhi, Kolkata, Bangalore, Jaipur). Type a question,
+and the synthetic electorate's verdict accumulates across the city as green
+(yes) / red (no) dots.
 
-This is the **simpler** of the two frontends: a real SF outline (no pixel art,
-no zoom), with stochastic per-dot poll results. It talks directly to the
-deployed backend (`https://sf-digital-twin-tp.fly.dev`) — see `../INTEGRATION.md`.
+This is the pixel-art frontend: whole-city tile renders with sprites walking
+the roads. It talks directly to the deployed backend
+(`https://sf-digital-twin-tp.fly.dev`) — see `../INTEGRATION.md`.
 
 Glassmorphic chrome over a painted map. The palette is sampled from the project's
 pixel-art palette image (warm sand land, pale-blue bay, violet accent, green/red
@@ -64,6 +65,5 @@ src/api.js          backend client (fetch + timeouts)
 src/projection.js   lon/lat → screen + point-in-polygon
 src/map.js          canvas renderer (landmass, dots, reveal animation)
 src/verdict.js      stochastic per-dot yes/no (marginal == p_yes)
-src/sf-outline.js   embedded SF land outline (GeoJSON)
 src/app.js          state machine + UI orchestration
 ```

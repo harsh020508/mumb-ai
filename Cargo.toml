@@ -1,4 +1,4 @@
-# sim francisco monorepo workspace.
+# mumb-ai monorepo workspace.
 #   crates/sim-core  — digital-twin backend (prediction engine + life-sim) + bins
 #   crates/sim-maps  — OSM/DEM -> pixel-tile map pipeline (was golden-future-map)
 # Shared data/ + assets/ + config/ live at this root; bins read them CWD-relative.

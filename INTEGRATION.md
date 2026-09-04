@@ -62,31 +62,31 @@ console.log(poll.p_yes, poll.ci_low, poll.ci_high, poll.breakdowns.age);
 
 ## 2. Coordinate contract (cell ↔ chunk ↔ UTM ↔ lat/long)
 
-The map comes from `tiles.db` (the map track's artifact). Grid facts (from its `manifest`):
+The map comes from `server_tiles/<city>.db` (the map track's artifact). Grid facts are per-city and live in that DB's `meta.manifest`. Mumbai (default):
 
 | quantity | value |
 |---|---|
-| chunks | **67 × 60** (cx 0..66 east, cy 0..59 south) |
+| chunks | **95 × 183** (cx 0..94 east, cy 0..182 south) |
 | cells per chunk | **125 × 125** |
 | meters per cell | **2.0** (LOD 0) |
-| global cell grid | **8375 × 7500** cells |
-| CRS | **UTM Zone 10N (EPSG:32610)** |
-| UTM bbox | min (541825.66, 4172447.92) → max (558482.89, 4187293.87) |
-| WGS84 bbox | W −122.5247, E −122.3366, S 37.6983, N 37.8312 |
+| global cell grid | **11875 × 22875** cells |
+| CRS | **UTM Zone 43N (EPSG:32643)** |
+| UTM bbox | min (265063.85, 2087644.95) → max (288769.97, 2133315.72) |
+| WGS84 bbox | W 72.77, E 72.99, S 18.87, N 19.28 |
 
-**Cell (0,0) is the NW corner**, anchored at UTM `(min_x, max_y)`. `+x` is east, `+y` is south.
+**Cell (0,0) is the NW corner**, anchored at UTM `(min_x, max_y)`. `+x` is east, `+y` is south. Always read `min_x` / `max_y` / `meters_per_cell` / `cells_per_chunk` from the city's manifest rather than hard-coding SF numbers.
 
 ```
 # global cell (gx, gy)  ->  UTM (meters), cell CENTER
-utm_x = 541825.66 + (gx + 0.5) * 2.0
-utm_y = 4187293.87 - (gy + 0.5) * 2.0
-# UTM -> lon/lat: standard inverse transverse-Mercator, zone 10N (or just use the
-# `lonlat` field the /agents endpoint already returns).
+utm_x = min_x + (gx + 0.5) * meters_per_cell
+utm_y = max_y - (gy + 0.5) * meters_per_cell
+# UTM -> lon/lat: inverse transverse-Mercator for the city's UTM zone (Mumbai = 43N),
+# or just use the `lonlat` field the /agents endpoint already returns.
 
 # global cell -> chunk + in-chunk index into the tiles.db collision grid
-cx = gx / 125,  cy = gy / 125            # integer division
-lx = gx % 125,  ly = gy % 125
-collision_index = ly * 125 + lx          # row-major; chunks.collision is a zstd u8[15625]
+cx = gx / cells_per_chunk,  cy = gy / cells_per_chunk
+lx = gx % cells_per_chunk,  ly = gy % cells_per_chunk
+collision_index = ly * cells_per_chunk + lx
 ```
 
 Cost values in `chunks.collision`: `0` free (road/sidewalk/plaza), `1`–`4` increasing terrain
@@ -103,7 +103,7 @@ render in grid space or on a geographic map without doing the projection yoursel
 ### `GET /health`
 ```json
 { "status": "ok", "model_reachable": true, "has_key": true,
-  "map_chunks": 4020, "sf_pums_records": 8485, "usage": { "calls": 0, "cache_hits": 0 } }
+  "map_chunks": 17385, "pums_records": 10000, "usage": { "calls": 0, "cache_hits": 0 } }
 ```
 `model_reachable` is `null` for the first second or two after boot (checked in the background), then `true`/`false`.
 
@@ -251,6 +251,6 @@ for the in-world clock.
 
 ## 6. Validation status (for context)
 
-`cargo run --bin validate` scores the prediction engine against real public ground truth (SF Dept of
-Elections 2024 canvass, resolved Polymarket markets, counterfactual directions). Current weighted
-headline **0.82** (gate 0.70). See `rubric.yaml` + `NOTES.md` for targets, sources, and methodology.
+`cargo run --bin validate -- --city mumbai` scores the prediction engine against real public ground
+truth (ECI 2024 results, city policy measures, counterfactual directions). See `rubric_<city>.yaml`
++ `NOTES.md` for targets, sources, and methodology.

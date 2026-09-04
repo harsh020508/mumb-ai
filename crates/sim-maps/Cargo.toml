@@ -2,7 +2,7 @@
 name = "sim-maps"
 version = "0.1.0"
 edition = "2021"
-description = "OSM/DEM -> procedural pixel-tile map pipeline for sim francisco cities"
+description = "OSM/DEM -> procedural pixel-tile map pipeline for mumb-ai cities"
 
 [lib]
 name = "sim_maps"
