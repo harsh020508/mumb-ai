@@ -7,6 +7,11 @@ use crate::geo::TilesDb;
 use crate::model::{Cache, Model, ModelClient};
 use crate::city::CityProfile;
 use crate::persona::{build_population_with, Population};
+
+fn lock_mutex<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    m.lock().unwrap_or_else(|p| p.into_inner())
+}
+
 use crate::predict::{Engine, Event, Framing, Poll};
 use crate::pums::PumsRecord;
 use crate::sim::{SimEngine, SimEvent};
@@ -181,7 +186,7 @@ async fn get_city_details(State(st): State<AppState>, Path(city): Path<String>) 
 async fn health(State(st): State<AppState>) -> impl IntoResponse {
     // Liveness must never block. Model reachability is checked ONCE in the background and
     // memoized; until the first check returns, we report `null` (checking).
-    let cached = *st.model_ok.lock().unwrap();
+    let cached = *lock_mutex(&st.model_ok);
     if cached.is_none() && st.client.has_key() {
         let client = st.client.clone();
         let slot = st.model_ok.clone();
@@ -226,7 +231,7 @@ fn default_commit() -> u64 { 20 }
 
 async fn create_sim(State(st): State<AppState>, Json(req): Json<CreateSimReq>) -> impl IntoResponse {
     {
-        let sims = st.sims.lock().unwrap();
+        let sims = lock_mutex(&st.sims);
         if sims.len() >= 50 {
             return (
                 StatusCode::TOO_MANY_REQUESTS,
@@ -271,7 +276,7 @@ async fn create_sim(State(st): State<AppState>, Json(req): Json<CreateSimReq>) -
         let pop_arc = Arc::new(pop);
         let engine = SimEngine::new(rt2.tiles.clone(), pop_arc.clone(), start_secs, tick_secs);
         (pop_arc, engine)
-    }).await.expect("population build failed");
+    }).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("population build failed: {e}")})))).unwrap();
     let sim_id = format!("sim-{}-{}-{}-{}", city_slug, req.seed, n, short_hash(&format!("{}{}", req.start_datetime, req.tick_seconds)));
     let meta = SimMeta {
         seed: req.seed,
@@ -303,7 +308,7 @@ async fn create_sim(State(st): State<AppState>, Json(req): Json<CreateSimReq>) -
         branches: Mutex::new(HashMap::from([(main.id.clone(), main)])),
         counter: Mutex::new(0),
     });
-    st.sims.lock().unwrap().insert(sim_id.clone(), ctx);
+    lock_mutex(&st.sims).insert(sim_id.clone(), ctx);
     let _ = req.distributional_params; // accepted; reserved for per-demographic seeding
 
     (StatusCode::CREATED, Json(json!({
@@ -317,7 +322,7 @@ async fn create_sim(State(st): State<AppState>, Json(req): Json<CreateSimReq>) -
 }
 
 async fn demographics(State(st): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
-    let ctx = match st.sims.lock().unwrap().get(&id).cloned() {
+    let ctx = match lock_mutex(&st.sims).get(&id).cloned() {
         Some(c) => c,
         None => return (StatusCode::NOT_FOUND, Json(json!({"error":"simulation not found"}))).into_response(),
     };
@@ -367,12 +372,12 @@ struct BranchEvent {
 fn default_ticks() -> usize { 20 }
 
 async fn create_branch(State(st): State<AppState>, Path(id): Path<String>, Json(req): Json<CreateBranchReq>) -> impl IntoResponse {
-    let ctx = match st.sims.lock().unwrap().get(&id).cloned() {
+    let ctx = match lock_mutex(&st.sims).get(&id).cloned() {
         Some(c) => c,
         None => return (StatusCode::NOT_FOUND, Json(json!({"error":"simulation not found"}))).into_response(),
     };
     {
-        let branches = ctx.branches.lock().unwrap();
+        let branches = lock_mutex(&ctx.branches);
         if branches.len() >= 20 {
             return (
                 StatusCode::TOO_MANY_REQUESTS,
@@ -381,7 +386,7 @@ async fn create_branch(State(st): State<AppState>, Path(id): Path<String>, Json(
                 .into_response();
         }
     }
-    let bnum = { let mut c = ctx.counter.lock().unwrap(); *c += 1; *c };
+    let bnum = { let mut c = lock_mutex(&ctx.counter); *c += 1; *c };
     let branch_id = format!("{id}:b{bnum}");
     let name = match req.name {
         Some(ref n) => {
@@ -401,8 +406,11 @@ async fn create_branch(State(st): State<AppState>, Path(id): Path<String>, Json(
 
     // clone main's current state into the new branch engine
     let main_state = {
-        let m = ctx.branches.lock().unwrap();
-        let main = m.get(&format!("{id}:main")).unwrap().clone();
+        let m = lock_mutex(&ctx.branches);
+        let main = match m.get(&format!("{id}:main")) {
+            Some(main_b) => main_b.clone(),
+            None => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "main branch not found"}))).into_response(),
+        };
         let e = main.engine.lock().unwrap();
         e.state.clone()
     };
@@ -449,7 +457,7 @@ async fn create_branch(State(st): State<AppState>, Path(id): Path<String>, Json(
         mode: req.mode.clone().unwrap_or_else(|| "social".into()),
         model: req.model.clone(),
     });
-    ctx.branches.lock().unwrap().insert(branch_id.clone(), bs);
+    lock_mutex(&ctx.branches).insert(branch_id.clone(), bs);
 
     (StatusCode::CREATED, Json(json!({
         "branch_id": branch_id,
@@ -488,7 +496,7 @@ async fn delete_branch(State(st): State<AppState>, Path(bid): Path<String>) -> i
         return (StatusCode::BAD_REQUEST, Json(json!({"error":"cannot delete main"}))).into_response();
     }
     if let Some((ctx, _)) = find_branch(&st, &bid) {
-        ctx.branches.lock().unwrap().remove(&bid);
+        lock_mutex(&ctx.branches).remove(&bid);
         let _ = st.store.delete_branch(&bid);
         return Json(json!({"deleted": bid})).into_response();
     }
@@ -496,13 +504,13 @@ async fn delete_branch(State(st): State<AppState>, Path(bid): Path<String>) -> i
 }
 
 async fn reset_to_main(State(st): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
-    let ctx = match st.sims.lock().unwrap().get(&id).cloned() {
+    let ctx = match lock_mutex(&st.sims).get(&id).cloned() {
         Some(c) => c,
         None => return (StatusCode::NOT_FOUND, Json(json!({"error":"simulation not found"}))).into_response(),
     };
     // drop all non-main branches; main is the canonical HEAD
     let removed: Vec<String> = {
-        let mut m = ctx.branches.lock().unwrap();
+        let mut m = lock_mutex(&ctx.branches);
         let keys: Vec<String> = m.keys().filter(|k| !k.ends_with(":main")).cloned().collect();
         for k in &keys {
             m.remove(k);
@@ -511,8 +519,11 @@ async fn reset_to_main(State(st): State<AppState>, Path(id): Path<String>) -> im
         keys
     };
     let main_tick = {
-        let m = ctx.branches.lock().unwrap();
-        let main = m.get(&format!("{id}:main")).unwrap().clone();
+        let m = lock_mutex(&ctx.branches);
+        let main = match m.get(&format!("{id}:main")) {
+            Some(main_b) => main_b.clone(),
+            None => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "main branch not found"}))).into_response(),
+        };
         let e = main.engine.lock().unwrap();
         e.state.tick
     };
@@ -724,8 +735,8 @@ fn find_branch(st: &AppState, bid: &str) -> Option<(Arc<SimContext>, Arc<BranchS
         Some(i) => bid[..i].to_string(),
         None => return None,
     };
-    let ctx = st.sims.lock().unwrap().get(&sim_id).cloned()?;
-    let bs = ctx.branches.lock().unwrap().get(bid).cloned()?;
+    let ctx = lock_mutex(&st.sims).get(&sim_id).cloned()?;
+    let bs = lock_mutex(&ctx.branches).get(bid).cloned()?;
     Some((ctx, bs))
 }
 
