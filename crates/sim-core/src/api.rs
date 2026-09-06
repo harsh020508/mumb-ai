@@ -69,7 +69,21 @@ pub struct BranchState {
     pub model: Option<String>,
 }
 
+async fn add_security_headers(
+    req: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    let mut resp = next.run(req).await;
+    let headers = resp.headers_mut();
+    headers.insert("x-content-type-options", axum::http::HeaderValue::from_static("nosniff"));
+    headers.insert("x-frame-options", axum::http::HeaderValue::from_static("DENY"));
+    headers.insert("x-xss-protection", axum::http::HeaderValue::from_static("1; mode=block"));
+    headers.insert("referrer-policy", axum::http::HeaderValue::from_static("strict-origin-when-cross-origin"));
+    resp
+}
+
 pub fn router(state: AppState) -> Router {
+    use axum::extract::DefaultBodyLimit;
     use tower_http::cors::{Any, CorsLayer};
     let cors = CorsLayer::new().allow_origin(Any).allow_methods(Any).allow_headers(Any);
     use tower_http::services::ServeDir;
@@ -95,6 +109,8 @@ pub fn router(state: AppState) -> Router {
         .route("/branches/:bid/predict-market", post(predict_market))
         .route("/branches/:bid/stream", get(branch_stream))
         .fallback_service(serve_dir)
+        .layer(DefaultBodyLimit::max(2 * 1024 * 1024))
+        .layer(axum::middleware::from_fn(add_security_headers))
         .layer(cors)
         .with_state(state)
 }
@@ -209,6 +225,16 @@ fn default_tick() -> i64 { 30 }
 fn default_commit() -> u64 { 20 }
 
 async fn create_sim(State(st): State<AppState>, Json(req): Json<CreateSimReq>) -> impl IntoResponse {
+    {
+        let sims = st.sims.lock().unwrap();
+        if sims.len() >= 50 {
+            return (
+                StatusCode::TOO_MANY_REQUESTS,
+                Json(json!({"error": "active simulation limit reached (max 50 active simulations)"})),
+            )
+                .into_response();
+        }
+    }
     let n = req.n.clamp(1, 50_000);
     let city_slug = req.city.clone().unwrap_or_else(|| st.default_city.clone());
     let rt = match st.cities.get(&city_slug) {
@@ -345,10 +371,33 @@ async fn create_branch(State(st): State<AppState>, Path(id): Path<String>, Json(
         Some(c) => c,
         None => return (StatusCode::NOT_FOUND, Json(json!({"error":"simulation not found"}))).into_response(),
     };
+    {
+        let branches = ctx.branches.lock().unwrap();
+        if branches.len() >= 20 {
+            return (
+                StatusCode::TOO_MANY_REQUESTS,
+                Json(json!({"error": "branch limit reached for this simulation (max 20 branches)"})),
+            )
+                .into_response();
+        }
+    }
     let bnum = { let mut c = ctx.counter.lock().unwrap(); *c += 1; *c };
     let branch_id = format!("{id}:b{bnum}");
-    let name = req.name.unwrap_or_else(|| format!("branch-{bnum}"));
-    let ticks = req.ticks.min(2000);
+    let name = match req.name {
+        Some(ref n) => {
+            let trimmed = n.trim();
+            if trimmed.is_empty() || trimmed.len() > 64 {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({"error": "invalid branch name: must be non-empty and <= 64 characters"})),
+                )
+                    .into_response();
+            }
+            trimmed.to_string()
+        }
+        None => format!("branch-{bnum}"),
+    };
+    let ticks = req.ticks.clamp(1, 2000);
 
     // clone main's current state into the new branch engine
     let main_state = {
@@ -870,7 +919,11 @@ async fn list_cities(State(st): State<AppState>) -> impl IntoResponse {
 fn load_city_runtime(slug: &str) -> anyhow::Result<CityRuntime> {
     let profile = CityProfile::load(slug)?;
     let tiles = Arc::new(TilesDb::open(&profile.tiles_path)?);
+    profile.validate(&tiles.manifest)?;
     let records = Arc::new(crate::pums::load_city(&profile)?);
+    if records.is_empty() {
+        anyhow::bail!("city {slug} loaded 0 PUMS records");
+    }
     Ok(CityRuntime { profile: Arc::new(profile), tiles, records })
 }
 
@@ -901,14 +954,18 @@ pub fn build_state(_tiles_path: &str, cache_path: Option<&str>, state_db: &str) 
     }
     slugs.sort();
 
-    for slug in &slugs {
-        match load_city_runtime(slug) {
-            Ok(rt) => {
-                tracing::info!("loaded city {slug}: {} PUMS records", rt.records.len());
-                cities.insert(slug.clone(), Arc::new(rt));
-            }
-            Err(e) => tracing::info!("city {slug} not loaded ({e:#}); skipping"),
+    const REQUIRED_CITIES: &[&str] = &["mumbai", "delhi", "kolkata", "bangalore", "jaipur"];
+    for req_slug in REQUIRED_CITIES {
+        if !slugs.iter().any(|s| s == req_slug) {
+            anyhow::bail!("missing required production city profile: data/cities/{req_slug}.toml");
         }
+    }
+
+    for slug in &slugs {
+        let rt = load_city_runtime(slug)
+            .map_err(|e| anyhow::anyhow!("failed to load city '{slug}': {e:#}"))?;
+        tracing::info!("loaded city {slug}: {} PUMS records", rt.records.len());
+        cities.insert(slug.clone(), Arc::new(rt));
     }
 
     let default_rt = cities

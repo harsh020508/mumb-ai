@@ -80,6 +80,43 @@ pub struct WorkClustering {
 }
 
 impl CityProfile {
+    pub fn validate(&self, manifest: &crate::geo::Manifest) -> anyhow::Result<()> {
+        if self.slug.is_empty() {
+            anyhow::bail!("city profile slug is empty");
+        }
+        if self.display.is_empty() {
+            anyhow::bail!("city profile display is empty for {}", self.slug);
+        }
+        if self.prompt_name.is_empty() {
+            anyhow::bail!("city profile prompt_name is empty for {}", self.slug);
+        }
+        if self.demonym.is_empty() {
+            anyhow::bail!("city profile demonym is empty for {}", self.slug);
+        }
+        if self.pumas.is_empty() {
+            anyhow::bail!("city profile pumas list is empty for {}", self.slug);
+        }
+        if self.religion_weights.len() != 9 {
+            anyhow::bail!("city profile religion_weights len != 9 for {}", self.slug);
+        }
+        let sum: f64 = self.religion_weights.iter().sum();
+        if (sum - 1.0).abs() > 0.05 {
+            anyhow::bail!("city profile religion_weights sum ({sum:.3}) != 1.0 for {}", self.slug);
+        }
+        if self.centroids.is_empty() {
+            anyhow::bail!("city profile centroids list is empty for {}", self.slug);
+        }
+        for c in &self.centroids {
+            if c.cx < 0 || c.cx >= manifest.chunks_x || c.cy < 0 || c.cy >= manifest.chunks_y {
+                anyhow::bail!(
+                    "centroid (cx={}, cy={}) for puma {} out of tile manifest bounds ({}x{}) in {}",
+                    c.cx, c.cy, c.puma, manifest.chunks_x, manifest.chunks_y, self.slug
+                );
+            }
+        }
+        Ok(())
+    }
+
     pub fn from_file(path: &Path) -> anyhow::Result<Self> {
         let text = std::fs::read_to_string(path)
             .map_err(|e| anyhow::anyhow!("reading city profile {}: {e}", path.display()))?;

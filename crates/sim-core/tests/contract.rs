@@ -56,6 +56,12 @@ async fn contract_all_endpoints() {
     // ---- /health ----
     let r = c.get(format!("{base}/health")).send().await.expect("health");
     assert_eq!(r.status(), 200, "health status");
+    assert_eq!(r.headers().get("x-content-type-options").and_then(|h| h.to_str().ok()), Some("nosniff"));
+    assert_eq!(r.headers().get("x-frame-options").and_then(|h| h.to_str().ok()), Some("DENY"));
+
+    // ---- Invalid city 400 validation ----
+    let r_bad = c.post(format!("{base}/simulations")).json(&serde_json::json!({"city": "nonexistent_city"})).send().await.unwrap();
+    assert_eq!(r_bad.status(), 400, "invalid city should 400");
     let v: Value = r.json().await.unwrap();
     assert_eq!(v["status"], "ok");
     assert!(v.get("has_key").is_some());
