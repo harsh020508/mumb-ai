@@ -5,7 +5,7 @@
 //!
 //! Adding a city = drop a `data/cities/<slug>.toml` + its PUMS subset + tiles.db. No code.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 #[derive(Clone, Debug, Deserialize)]
@@ -37,13 +37,13 @@ pub struct CityProfile {
     pub work: WorkClustering,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct NeighborhoodEntry {
     pub puma: u32,
     pub label: String,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CentroidEntry {
     pub puma: u32,
     pub cx: i64,
@@ -107,7 +107,12 @@ impl CityProfile {
             .iter()
             .find(|c| c.puma == puma)
             .map(|c| (c.cx, c.cy, c.radius))
-            .unwrap_or((33, 30, 12))
+            .unwrap_or_else(|| {
+                self.centroids
+                    .first()
+                    .map(|c| (c.cx, c.cy, c.radius))
+                    .unwrap_or((33, 30, 12))
+            })
     }
 
     /// Vote-framing system prompt. The SF assembly is byte-identical to the original

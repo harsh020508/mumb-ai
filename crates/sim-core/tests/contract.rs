@@ -59,7 +59,25 @@ async fn contract_all_endpoints() {
     let v: Value = r.json().await.unwrap();
     assert_eq!(v["status"], "ok");
     assert!(v.get("has_key").is_some());
-    assert!(v.get("sf_pums_records").and_then(|x| x.as_u64()).unwrap_or(0) > 1000, "pums loaded");
+    assert!(v.get("pums_records").and_then(|x| x.as_u64()).unwrap_or(0) > 1000, "pums loaded");
+
+    // ---- /ready ----
+    let r = c.get(format!("{base}/ready")).send().await.expect("ready");
+    assert_eq!(r.status(), 200, "ready status");
+    let v: Value = r.json().await.unwrap();
+    assert_eq!(v["status"], "ready");
+
+    // ---- GET /cities ----
+    let r = c.get(format!("{base}/cities")).send().await.expect("list cities");
+    assert_eq!(r.status(), 200, "cities status");
+    let v: Value = r.json().await.unwrap();
+    assert!(v["cities"].as_array().map(|a| a.len()).unwrap_or(0) >= 5, "all 5 cities listed");
+
+    // ---- GET /cities/mumbai ----
+    let r = c.get(format!("{base}/cities/mumbai")).send().await.expect("get city details");
+    assert_eq!(r.status(), 200, "city details status");
+    let v: Value = r.json().await.unwrap();
+    assert_eq!(v["slug"], "mumbai");
 
     // ---- POST /simulations ----
     let r = c
@@ -113,8 +131,8 @@ async fn contract_all_endpoints() {
     let lonlat = a0["lonlat"].as_array().unwrap();
     let lon = lonlat[0].as_f64().unwrap();
     let lat = lonlat[1].as_f64().unwrap();
-    assert!((-122.55..-122.33).contains(&lon), "lon in SF bbox: {lon}");
-    assert!((37.69..37.84).contains(&lat), "lat in SF bbox: {lat}");
+    assert!((72.70..73.10).contains(&lon), "lon in SF bbox: {lon}");
+    assert!((18.70..19.40).contains(&lat), "lat in SF bbox: {lat}");
 
     // ---- GET /branches/{id}/stream (SSE: first typed event) ----
     let r = c.get(format!("{base}/branches/{branch_id}/stream")).send().await.unwrap();

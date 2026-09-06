@@ -140,12 +140,12 @@ fn make_agent(
     cutoffs: &[f64; 4],
     profile: &CityProfile,
 ) -> Agent {
-    let religion = religion::assign(&rec, rng, &profile.religion_weights);
+    let religion = religion::assign(&rec, rng, &profile.religion_weights, profile.slug == "sf");
     let religiosity = religion::religiosity(religion, rng);
     let homeowner = sample_homeowner(&rec, rng);
     let q = cutoffs.iter().filter(|&&c| rec.econ_rank() > c).count();
     let values = make_value_vector(&rec, religiosity, homeowner, q, rng, profile);
-    let name = make_name(&rec, rng);
+    let name = make_name(&rec, rng, profile);
     let occupation = occupation_label(rec.occp, rec.esr);
     let neighborhood = profile.neighborhood(rec.puma);
     let mut persona = build_persona_prose(&rec, &name, &occupation, &neighborhood, religion, religiosity, homeowner, &values, profile);
@@ -252,12 +252,14 @@ pub fn make_value_vector(
     // economic axis
     economic += (income_q as f64 - 2.0) * 0.06;
     economic += (age - 45.0) / 100.0 * 0.5;
-    economic += match race {
-        "black" => -0.15,
-        "hispanic" => -0.08,
-        "asian" => 0.04,
-        _ => 0.0,
-    };
+    if profile.slug == "sf" {
+        economic += match race {
+            "black" => -0.15,
+            "hispanic" => -0.08,
+            "asian" => 0.04,
+            _ => 0.0,
+        };
+    }
     if homeowner {
         economic += 0.08;
     }
@@ -271,14 +273,16 @@ pub fn make_value_vector(
     }
     social += (age - 45.0) / 100.0 * 0.6;
     social += religiosity * 0.4;
-    if rec.foreign_born() {
-        social += 0.1;
+    if profile.slug == "sf" {
+        if rec.foreign_born() {
+            social += 0.1;
+        }
+        social += match race {
+            "black" | "hispanic" => 0.05,
+            "asian" => 0.03,
+            _ => 0.0,
+        };
     }
-    social += match race {
-        "black" | "hispanic" => 0.05,
-        "asian" => 0.03,
-        _ => 0.0,
-    };
 
     // trust
     if college {
@@ -370,20 +374,31 @@ fn build_persona_prose(
         "separated" => "separated",
         _ => "single",
     };
-    let born = if rec.foreign_born() {
-        ", an immigrant to the US"
-    } else {
-        ""
-    };
-    format!(
-        "{name}, age {age}, is a {marital} {race} {demonym}{born} living in {neighborhood}. \
+    if profile.slug == "sf" {
+        let born = if rec.foreign_born() {
+            ", an immigrant to the US"
+        } else {
+            ""
+        };
+        format!(
+            "{name}, age {age}, is a {marital} {race} {demonym}{born} living in {neighborhood}. \
 Works as {occ}, has {edu}, {tenure}, {relig}. Politically: {leanings}",
-        age = rec.age,
-        race = pretty_race(rec.race_eth()),
-        demonym = profile.demonym,
-        occ = occupation,
-        leanings = values.describe(),
-    )
+            age = rec.age,
+            race = pretty_race(rec.race_eth()),
+            demonym = profile.demonym,
+            occ = occupation,
+            leanings = values.describe(),
+        )
+    } else {
+        format!(
+            "{name}, age {age}, is a {marital} {demonym} living in {neighborhood}. \
+Works as {occ}, has {edu}, {tenure}, {relig}. Politically: {leanings}",
+            age = rec.age,
+            demonym = profile.demonym,
+            occ = occupation,
+            leanings = values.describe(),
+        )
+    }
 }
 
 fn pretty_race(r: &str) -> &'static str {
@@ -435,20 +450,34 @@ fn sample_work_cell(tiles: &TilesDb, rec: &PumsRecord, rng: &mut impl Rng, profi
     }
 }
 
-fn make_name(rec: &PumsRecord, rng: &mut impl Rng) -> String {
-    let first = if rec.sex == 1 {
-        FIRST_M[rng.gen_range(0..FIRST_M.len())]
+fn make_name(rec: &PumsRecord, rng: &mut impl Rng, profile: &CityProfile) -> String {
+    if profile.slug != "sf" {
+        let first = if rec.sex == 1 {
+            FIRST_M_IN[rng.gen_range(0..FIRST_M_IN.len())]
+        } else {
+            FIRST_F_IN[rng.gen_range(0..FIRST_F_IN.len())]
+        };
+        let last = LAST_IN[rng.gen_range(0..LAST_IN.len())];
+        format!("{first} {last}")
     } else {
-        FIRST_F[rng.gen_range(0..FIRST_F.len())]
-    };
-    let last = match rec.race_eth() {
-        "hispanic" => LAST_HISP[rng.gen_range(0..LAST_HISP.len())],
-        "asian" => LAST_ASIAN[rng.gen_range(0..LAST_ASIAN.len())],
-        "black" => LAST_BLACK[rng.gen_range(0..LAST_BLACK.len())],
-        _ => LAST_GEN[rng.gen_range(0..LAST_GEN.len())],
-    };
-    format!("{first} {last}")
+        let first = if rec.sex == 1 {
+            FIRST_M[rng.gen_range(0..FIRST_M.len())]
+        } else {
+            FIRST_F[rng.gen_range(0..FIRST_F.len())]
+        };
+        let last = match rec.race_eth() {
+            "hispanic" => LAST_HISP[rng.gen_range(0..LAST_HISP.len())],
+            "asian" => LAST_ASIAN[rng.gen_range(0..LAST_ASIAN.len())],
+            "black" => LAST_BLACK[rng.gen_range(0..LAST_BLACK.len())],
+            _ => LAST_GEN[rng.gen_range(0..LAST_GEN.len())],
+        };
+        format!("{first} {last}")
+    }
 }
+
+const FIRST_M_IN: [&str; 15] = ["Aarav", "Rohan", "Aditya", "Vikram", "Rahul", "Amit", "Suresh", "Pradeep", "Rajesh", "Vijay", "Anand", "Deepak", "Karan", "Sanjay", "Arjun"];
+const FIRST_F_IN: [&str; 15] = ["Priya", "Ananya", "Pooja", "Sunita", "Lakshmi", "Kavita", "Deepa", "Neha", "Anita", "Sita", "Meena", "Ritu", "Shweta", "Divya", "Aarti"];
+const LAST_IN: [&str; 16] = ["Sharma", "Verma", "Patel", "Singh", "Kumar", "Gupta", "Joshi", "Rao", "Nair", "Banerjee", "Chatterjee", "Deshmukh", "Kulkarni", "Mehta", "Shah", "Reddy"];
 
 const FIRST_M: [&str; 12] = ["James", "Wei", "Carlos", "David", "Miguel", "Jamal", "Kevin", "Daniel", "Hassan", "Raj", "Tomás", "Andre"];
 const FIRST_F: [&str; 12] = ["Maria", "Mei", "Sofia", "Aisha", "Jennifer", "Priya", "Keisha", "Elena", "Grace", "Fatima", "Lucia", "Nora"];

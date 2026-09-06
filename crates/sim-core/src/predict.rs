@@ -277,11 +277,11 @@ p_yes is a probability between 0 and 1. Be realistic and calibrated to {city_nam
         // Inject today's news into LIVE polls only (recent as_of_date); historical
         // backtests keep an old as_of_date and never see it, so they stay leakage-free.
         let news_block = if poll.as_of_date.as_str() >= "2025-06-01" {
-            let news = crate::news::load(&pop.profile.slug);
-            let rag_index = crate::rag::RagIndex::from_news(&pop.profile.slug, &news);
+            let news = crate::news::load_filtered(&pop.profile.slug, &poll.as_of_date);
+            let rag_index = crate::rag::RagIndex::from_news_filtered(&pop.profile.slug, &news, &poll.as_of_date);
             let retrieved = rag_index.retrieve_context(&poll.question, 4);
             if retrieved.is_empty() {
-                crate::news::prompt_block(&pop.profile.slug)
+                crate::news::prompt_block_filtered(&pop.profile.slug, &poll.as_of_date)
             } else {
                 retrieved
             }

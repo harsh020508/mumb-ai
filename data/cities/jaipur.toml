@@ -62,23 +62,297 @@ puma = 800100
 cx = 42
 cy = 33
 radius = 14
+
+[[centroids]]
+puma = 800101
+cx = 78
+cy = 14
+radius = 14
+
+[[centroids]]
+puma = 800102
+cx = 68
+cy = 24
+radius = 14
+
 [[centroids]]
 puma = 800103
 cx = 34
 cy = 49
 radius = 12
+
 [[centroids]]
 puma = 800104
 cx = 17
 cy = 49
 radius = 16
+
+[[centroids]]
+puma = 800105
+cx = 38
+cy = 54
+radius = 14
+
 [[centroids]]
 puma = 800106
 cx = 27
 cy = 81
 radius = 16
+
+[[centroids]]
+puma = 800107
+cx = 18
+cy = 74
+radius = 14
+
 [[centroids]]
 puma = 800108
 cx = 23
 cy = 18
 radius = 16
+
+[[centroids]]
+puma = 800109
+cx = 1
+cy = 94
+radius = 14
+
+[[centroids]]
+puma = 800100
+cx = 42
+cy = 33
+radius = 14
+
+[[centroids]]
+puma = 800101
+cx = 78
+cy = 14
+radius = 14
+
+[[centroids]]
+puma = 800102
+cx = 68
+cy = 24
+radius = 14
+
+[[centroids]]
+puma = 800103
+cx = 34
+cy = 49
+radius = 12
+
+[[centroids]]
+puma = 800104
+cx = 17
+cy = 49
+radius = 16
+
+[[centroids]]
+puma = 800105
+cx = 38
+cy = 54
+radius = 14
+
+[[centroids]]
+puma = 800106
+cx = 27
+cy = 81
+radius = 16
+
+[[centroids]]
+puma = 800107
+cx = 18
+cy = 74
+radius = 14
+
+[[centroids]]
+puma = 800108
+cx = 23
+cy = 18
+radius = 16
+
+[[centroids]]
+puma = 800109
+cx = 1
+cy = 94
+radius = 14
+
+[[centroids]]
+puma = 800100
+cx = 42
+cy = 33
+radius = 14
+
+[[centroids]]
+puma = 800101
+cx = 78
+cy = 14
+radius = 14
+
+[[centroids]]
+puma = 800102
+cx = 68
+cy = 24
+radius = 14
+
+[[centroids]]
+puma = 800103
+cx = 34
+cy = 49
+radius = 12
+
+[[centroids]]
+puma = 800104
+cx = 17
+cy = 49
+radius = 16
+
+[[centroids]]
+puma = 800105
+cx = 38
+cy = 54
+radius = 14
+
+[[centroids]]
+puma = 800106
+cx = 27
+cy = 81
+radius = 16
+
+[[centroids]]
+puma = 800107
+cx = 18
+cy = 74
+radius = 14
+
+[[centroids]]
+puma = 800108
+cx = 23
+cy = 18
+radius = 16
+
+[[centroids]]
+puma = 800109
+cx = 1
+cy = 94
+radius = 14
+
+[[centroids]]
+puma = 800100
+cx = 42
+cy = 33
+radius = 14
+
+[[centroids]]
+puma = 800101
+cx = 78
+cy = 14
+radius = 14
+
+[[centroids]]
+puma = 800102
+cx = 68
+cy = 24
+radius = 14
+
+[[centroids]]
+puma = 800103
+cx = 34
+cy = 49
+radius = 12
+
+[[centroids]]
+puma = 800104
+cx = 17
+cy = 49
+radius = 16
+
+[[centroids]]
+puma = 800105
+cx = 38
+cy = 54
+radius = 14
+
+[[centroids]]
+puma = 800106
+cx = 27
+cy = 81
+radius = 16
+
+[[centroids]]
+puma = 800107
+cx = 18
+cy = 74
+radius = 14
+
+[[centroids]]
+puma = 800108
+cx = 23
+cy = 18
+radius = 16
+
+[[centroids]]
+puma = 800109
+cx = 1
+cy = 94
+radius = 14
+
+[[centroids]]
+puma = 800100
+cx = 42
+cy = 33
+radius = 14
+
+[[centroids]]
+puma = 800101
+cx = 78
+cy = 14
+radius = 14
+
+[[centroids]]
+puma = 800102
+cx = 68
+cy = 24
+radius = 14
+
+[[centroids]]
+puma = 800103
+cx = 34
+cy = 49
+radius = 12
+
+[[centroids]]
+puma = 800104
+cx = 17
+cy = 49
+radius = 16
+
+[[centroids]]
+puma = 800105
+cx = 38
+cy = 54
+radius = 14
+
+[[centroids]]
+puma = 800106
+cx = 27
+cy = 81
+radius = 16
+
+[[centroids]]
+puma = 800107
+cx = 18
+cy = 74
+radius = 14
+
+[[centroids]]
+puma = 800108
+cx = 23
+cy = 18
+radius = 16
+
+[[centroids]]
+puma = 800109
+cx = 1
+cy = 94
+radius = 14

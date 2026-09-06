@@ -56,23 +56,237 @@ puma = 2900100
 cx = 64
 cy = 74
 radius = 14
+
 [[centroids]]
 puma = 2900101
 cx = 79
 cy = 72
 radius = 14
+
 [[centroids]]
 puma = 2900102
 cx = 74
 cy = 91
 radius = 16
+
 [[centroids]]
 puma = 2900103
 cx = 127
 cy = 76
 radius = 18
+
+[[centroids]]
+puma = 2900104
+cx = 22
+cy = 78
+radius = 14
+
 [[centroids]]
 puma = 2900105
 cx = 54
 cy = 96
 radius = 16
+
+[[centroids]]
+puma = 2900106
+cx = 126
+cy = 112
+radius = 14
+
+[[centroids]]
+puma = 2900107
+cx = 41
+cy = 130
+radius = 14
+
+[[centroids]]
+puma = 2900100
+cx = 64
+cy = 74
+radius = 14
+
+[[centroids]]
+puma = 2900101
+cx = 79
+cy = 72
+radius = 14
+
+[[centroids]]
+puma = 2900102
+cx = 74
+cy = 91
+radius = 16
+
+[[centroids]]
+puma = 2900103
+cx = 127
+cy = 76
+radius = 18
+
+[[centroids]]
+puma = 2900104
+cx = 22
+cy = 78
+radius = 14
+
+[[centroids]]
+puma = 2900105
+cx = 54
+cy = 96
+radius = 16
+
+[[centroids]]
+puma = 2900106
+cx = 126
+cy = 112
+radius = 14
+
+[[centroids]]
+puma = 2900107
+cx = 41
+cy = 130
+radius = 14
+
+[[centroids]]
+puma = 2900100
+cx = 64
+cy = 74
+radius = 14
+
+[[centroids]]
+puma = 2900101
+cx = 79
+cy = 72
+radius = 14
+
+[[centroids]]
+puma = 2900102
+cx = 74
+cy = 91
+radius = 16
+
+[[centroids]]
+puma = 2900103
+cx = 127
+cy = 76
+radius = 18
+
+[[centroids]]
+puma = 2900104
+cx = 22
+cy = 78
+radius = 14
+
+[[centroids]]
+puma = 2900105
+cx = 54
+cy = 96
+radius = 16
+
+[[centroids]]
+puma = 2900106
+cx = 126
+cy = 112
+radius = 14
+
+[[centroids]]
+puma = 2900107
+cx = 41
+cy = 130
+radius = 14
+
+[[centroids]]
+puma = 2900100
+cx = 64
+cy = 74
+radius = 14
+
+[[centroids]]
+puma = 2900101
+cx = 79
+cy = 72
+radius = 14
+
+[[centroids]]
+puma = 2900102
+cx = 74
+cy = 91
+radius = 16
+
+[[centroids]]
+puma = 2900103
+cx = 127
+cy = 76
+radius = 18
+
+[[centroids]]
+puma = 2900104
+cx = 22
+cy = 78
+radius = 14
+
+[[centroids]]
+puma = 2900105
+cx = 54
+cy = 96
+radius = 16
+
+[[centroids]]
+puma = 2900106
+cx = 126
+cy = 112
+radius = 14
+
+[[centroids]]
+puma = 2900107
+cx = 41
+cy = 130
+radius = 14
+
+[[centroids]]
+puma = 2900100
+cx = 64
+cy = 74
+radius = 14
+
+[[centroids]]
+puma = 2900101
+cx = 79
+cy = 72
+radius = 14
+
+[[centroids]]
+puma = 2900102
+cx = 74
+cy = 91
+radius = 16
+
+[[centroids]]
+puma = 2900103
+cx = 127
+cy = 76
+radius = 18
+
+[[centroids]]
+puma = 2900104
+cx = 22
+cy = 78
+radius = 14
+
+[[centroids]]
+puma = 2900105
+cx = 54
+cy = 96
+radius = 16
+
+[[centroids]]
+puma = 2900106
+cx = 126
+cy = 112
+radius = 14
+
+[[centroids]]
+puma = 2900107
+cx = 41
+cy = 130
+radius = 14

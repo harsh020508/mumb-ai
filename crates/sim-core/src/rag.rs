@@ -36,15 +36,22 @@ impl RagIndex {
 
     /// Build a RagIndex from a city's news cache and default neighborhood profiles.
     pub fn from_news(city: &str, news: &CityNews) -> Self {
+        Self::from_news_filtered(city, news, "")
+    }
+
+    /// Build a RagIndex filtering out articles published after as_of_date.
+    pub fn from_news_filtered(city: &str, news: &CityNews, as_of_date: &str) -> Self {
         let mut index = Self::new(city);
 
         for (i, a) in news.articles.iter().enumerate() {
-            index.add_document(RagDocument {
-                id: format!("{city}-news-{i}"),
-                title: a.headline.clone(),
-                content: format!("{}. {}", a.headline, a.summary),
-                category: "news".to_string(),
-            });
+            if a.date.is_empty() || as_of_date.is_empty() || a.date.as_str() <= as_of_date {
+                index.add_document(RagDocument {
+                    id: format!("{city}-news-{i}"),
+                    title: a.headline.clone(),
+                    content: format!("{}. {}", a.headline, a.summary),
+                    category: "news".to_string(),
+                });
+            }
         }
 
         index.build_stats();

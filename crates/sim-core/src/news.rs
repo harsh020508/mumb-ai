@@ -32,6 +32,35 @@ pub fn path(slug: &str) -> String {
     format!("data/news/{slug}.json")
 }
 
+
+
+pub fn load_filtered(slug: &str, as_of_date: &str) -> CityNews {
+    let mut news = load(slug);
+    if !as_of_date.is_empty() {
+        news.articles.retain(|a| a.date.is_empty() || a.date.as_str() <= as_of_date);
+    }
+    news
+}
+
+pub fn prompt_block_filtered(slug: &str, as_of_date: &str) -> String {
+    let news = load_filtered(slug, as_of_date);
+    if news.articles.is_empty() {
+        return String::new();
+    }
+    let effective_date = if news.date.is_empty() || (!as_of_date.is_empty() && news.date.as_str() > as_of_date) {
+        as_of_date
+    } else {
+        &news.date
+    };
+    let mut s = format!("Recent local and national news that residents are aware of (as of {effective_date}):
+");
+    for a in news.articles.iter().take(6) {
+        s.push_str(&format!("- {}. {}
+", a.headline, a.summary));
+    }
+    s
+}
+
 pub fn load(slug: &str) -> CityNews {
     match std::fs::read_to_string(path(slug)) {
         Ok(t) => serde_json::from_str(&t).unwrap_or_default(),

@@ -66,6 +66,7 @@ pub struct BranchState {
     pub kind: String,
     pub engine: Mutex<SimEngine>,
     pub mode: String,
+    pub model: Option<String>,
 }
 
 pub fn router(state: AppState) -> Router {
@@ -76,8 +77,10 @@ pub fn router(state: AppState) -> Router {
 
     Router::new()
         .route("/health", get(health))
+        .route("/ready", get(ready))
         .route("/", get(root))
         .route("/cities", get(list_cities))
+        .route("/cities/:city", get(get_city_details))
         .route("/cities/:city/parse", post(parse_question_handler))
         .route("/cities/:city/news", get(city_news))
         .route("/simulations", post(create_sim))
@@ -98,7 +101,7 @@ pub fn router(state: AppState) -> Router {
 
 async fn root() -> impl IntoResponse {
     Json(json!({
-        "service": "sf-digital-twin",
+        "service": "mumb-ai",
         "docs": "see INTEGRATION.md",
         "endpoints": [
             "GET /health", "POST /simulations", "GET /simulations/{id}/demographics",
@@ -108,6 +111,55 @@ async fn root() -> impl IntoResponse {
             "DELETE /branches/{id}", "GET /branches/{id}/stream"
         ]
     }))
+}
+
+
+async fn ready(State(st): State<AppState>) -> impl IntoResponse {
+    let cities_count = st.cities.len();
+    if cities_count > 0 && !st.records.is_empty() {
+        (
+            StatusCode::OK,
+            Json(json!({
+                "status": "ready",
+                "cities_loaded": cities_count,
+                "pums_records": st.records.len(),
+            })),
+        )
+            .into_response()
+    } else {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({
+                "status": "not_ready",
+                "cities_loaded": cities_count,
+                "pums_records": st.records.len(),
+            })),
+        )
+            .into_response()
+    }
+}
+
+async fn get_city_details(State(st): State<AppState>, Path(city): Path<String>) -> impl IntoResponse {
+    let rt = match st.cities.get(&city) {
+        Some(rt) => rt,
+        None => return (StatusCode::NOT_FOUND, Json(json!({"error": format!("unknown city: {city}")}))).into_response(),
+    };
+    let m = &rt.tiles.manifest;
+    let news = crate::news::load(&city);
+    Json(json!({
+        "slug": rt.profile.slug,
+        "display": rt.profile.display,
+        "prompt_name": rt.profile.prompt_name,
+        "demonym": rt.profile.demonym,
+        "bbox": { "west": m.west, "south": m.south, "east": m.east, "north": m.north },
+        "n_pums": rt.records.len(),
+        "pumas": rt.profile.pumas,
+        "neighborhoods": rt.profile.neighborhoods,
+        "centroids": rt.profile.centroids,
+        "religion_weights": rt.profile.religion_weights,
+        "knowledge_date": news.date,
+        "default": rt.profile.slug == st.default_city,
+    })).into_response()
 }
 
 async fn health(State(st): State<AppState>) -> impl IntoResponse {
@@ -127,6 +179,7 @@ async fn health(State(st): State<AppState>) -> impl IntoResponse {
         "model_reachable": cached,
         "has_key": st.client.has_key(),
         "map_chunks": st.tiles.manifest.chunks_x * st.tiles.manifest.chunks_y,
+        "pums_records": st.records.len(),
         "sf_pums_records": st.records.len(),
         "usage": st.client.usage.snapshot(),
     }))
@@ -174,8 +227,21 @@ async fn create_sim(State(st): State<AppState>, Json(req): Json<CreateSimReq>) -
     let rt2 = rt.clone();
     let tick_secs = req.tick_seconds;
     let seed = req.seed;
+    let mut profile = (*rt2.profile).clone();
+    if let Some(ref params) = req.distributional_params {
+        if let Some(arr) = params.get("religion_weights").and_then(|v| v.as_array()) {
+            if arr.len() == 9 {
+                for (i, v) in arr.iter().enumerate() {
+                    if let Some(f) = v.as_f64() {
+                        profile.religion_weights[i] = f;
+                    }
+                }
+            }
+        }
+    }
+    let profile_arc = Arc::new(profile);
     let (pop_arc, engine) = tokio::task::spawn_blocking(move || {
-        let pop = build_population_with(&rt2.records, n, seed, Some(&rt2.tiles), rt2.profile.clone());
+        let pop = build_population_with(&rt2.records, n, seed, Some(&rt2.tiles), profile_arc);
         let pop_arc = Arc::new(pop);
         let engine = SimEngine::new(rt2.tiles.clone(), pop_arc.clone(), start_secs, tick_secs);
         (pop_arc, engine)
@@ -201,6 +267,7 @@ async fn create_sim(State(st): State<AppState>, Json(req): Json<CreateSimReq>) -
         kind: "main".into(),
         engine: Mutex::new(engine),
         mode: "clean".into(),
+        model: None,
     });
     let ctx = Arc::new(SimContext {
         id: sim_id.clone(),
@@ -331,9 +398,9 @@ async fn create_branch(State(st): State<AppState>, Path(id): Path<String>, Json(
         kind: "branch".into(),
         engine: Mutex::new(engine),
         mode: req.mode.clone().unwrap_or_else(|| "social".into()),
+        model: req.model.clone(),
     });
     ctx.branches.lock().unwrap().insert(branch_id.clone(), bs);
-    let _ = req.model;
 
     (StatusCode::CREATED, Json(json!({
         "branch_id": branch_id,
@@ -489,14 +556,17 @@ async fn branch_chatter(
 }
 
 async fn branch_poll(State(st): State<AppState>, Path(bid): Path<String>, Json(req): Json<Value>) -> impl IntoResponse {
-    let (ctx, _bs) = match find_branch(&st, &bid) {
+    let (ctx, bs) = match find_branch(&st, &bid) {
         Some(x) => x,
         None => return (StatusCode::NOT_FOUND, Json(json!({"error":"branch not found"}))).into_response(),
     };
-    let poll = match poll_from_json(&req) {
+    let mut poll = match poll_from_json(&req) {
         Ok(p) => p,
         Err(e) => return (StatusCode::BAD_REQUEST, Json(json!({"error": e}))).into_response(),
     };
+    if poll.model.is_none() {
+        poll.model = bs.model.clone();
+    }
     match st.engine.run_poll(&ctx.population, &poll).await {
         Ok(res) => Json(json!(res)).into_response(),
         Err(e) => (StatusCode::BAD_GATEWAY, Json(json!({"error": format!("poll failed: {e}")}))).into_response(),
@@ -504,7 +574,7 @@ async fn branch_poll(State(st): State<AppState>, Path(bid): Path<String>, Json(r
 }
 
 async fn predict_market(State(st): State<AppState>, Path(bid): Path<String>, Json(req): Json<Value>) -> impl IntoResponse {
-    let (ctx, _bs) = match find_branch(&st, &bid) {
+    let (ctx, bs) = match find_branch(&st, &bid) {
         Some(x) => x,
         None => return (StatusCode::NOT_FOUND, Json(json!({"error":"branch not found"}))).into_response(),
     };
@@ -514,12 +584,13 @@ async fn predict_market(State(st): State<AppState>, Path(bid): Path<String>, Jso
     }
     let as_of = req.get("as_of_date").and_then(|x| x.as_str()).unwrap_or("2024-01-01").to_string();
     let bucket = req.get("bucket").and_then(|x| x.as_str()).unwrap_or("sf_opinion_informative").to_string();
+    let model = req.get("model").and_then(|x| x.as_str()).map(|s| s.to_string()).or_else(|| bs.model.clone());
     let poll = Poll {
         question: question.clone(),
         description: req.get("description").and_then(|x| x.as_str()).unwrap_or("Prediction-market question mapped to a pollable belief.").to_string(),
         framing: Framing::Belief,
         as_of_date: as_of.clone(),
-        model: req.get("model").and_then(|x| x.as_str()).map(|s| s.to_string()),
+        model,
         population: None,
         event: None,
         options: Vec::new(),

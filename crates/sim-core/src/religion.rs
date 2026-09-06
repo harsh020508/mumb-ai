@@ -53,12 +53,13 @@ impl Religion {
 }
 
 /// Conditional probability weights over religions for an agent, then a deterministic draw.
-pub fn assign(rec: &PumsRecord, rng: &mut impl Rng, weights: &[f64; 9]) -> Religion {
+pub fn assign(rec: &PumsRecord, rng: &mut impl Rng, weights: &[f64; 9], is_sf: bool) -> Religion {
     // baseline weights (Pew metro), order matches Religion::all()
     let mut w = *weights;
 
-    // race/ethnicity tilts
-    match rec.race_eth() {
+    if is_sf {
+        // race/ethnicity tilts
+        match rec.race_eth() {
         "hispanic" => {
             w[0] *= 2.6; // Catholic
             w[1] *= 1.2;
@@ -85,6 +86,7 @@ pub fn assign(rec: &PumsRecord, rng: &mut impl Rng, weights: &[f64; 9]) -> Relig
         w[7] *= 2.0; // Hindu
         w[0] *= 1.3; // Catholic (immigrant)
         w[3] *= 0.7;
+    }
     }
 
     // age tilt: younger -> more unaffiliated; older -> more affiliated
@@ -147,8 +149,8 @@ mod tests {
     #[test]
     fn deterministic_given_seed() {
         let r = rec(1, 1, 30);
-        let a = assign(&r, &mut ChaCha8Rng::seed_from_u64(5), &SFW);
-        let b = assign(&r, &mut ChaCha8Rng::seed_from_u64(5), &SFW);
+        let a = assign(&r, &mut ChaCha8Rng::seed_from_u64(5), &SFW, true);
+        let b = assign(&r, &mut ChaCha8Rng::seed_from_u64(5), &SFW, true);
         assert_eq!(a, b);
     }
 
@@ -158,8 +160,8 @@ mod tests {
         let mut cath_h = 0;
         let mut cath_w = 0;
         for s in 0..2000u64 {
-            let h = assign(&rec(8, 2, 40), &mut ChaCha8Rng::seed_from_u64(s), &SFW);
-            let w = assign(&rec(1, 1, 40), &mut ChaCha8Rng::seed_from_u64(s), &SFW);
+            let h = assign(&rec(8, 2, 40), &mut ChaCha8Rng::seed_from_u64(s), &SFW, true);
+            let w = assign(&rec(1, 1, 40), &mut ChaCha8Rng::seed_from_u64(s), &SFW, true);
             if h == Religion::Catholic {
                 cath_h += 1;
             }
@@ -175,7 +177,7 @@ mod tests {
         let mut unaff = 0;
         for s in 0..3000u64 {
             let r = rec(1, 1, 35);
-            if assign(&r, &mut ChaCha8Rng::seed_from_u64(s), &SFW) == Religion::Unaffiliated {
+            if assign(&r, &mut ChaCha8Rng::seed_from_u64(s), &SFW, true) == Religion::Unaffiliated {
                 unaff += 1;
             }
         }
