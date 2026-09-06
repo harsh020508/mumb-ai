@@ -5,15 +5,17 @@
 // Backend (see ../INTEGRATION.md). CORS is wide-open, so browser fetch works.
 export const BASE = (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"))
   ? "http://127.0.0.1:8080"
-  : "https://sf-digital-twin-tp.fly.dev";
+  : (typeof window !== "undefined" ? window.location.origin : "");
 
 // Synthetic population to spin up on load. 5,000 agents → a denser, more diverse
 // crowd; poll latency stays bounded because agents are clustered into ≤160 archetypes
 // before the LLM is called, so the call count (not N) sets the wait.
+const todayDate = new Date().toISOString().slice(0, 10);
+
 export const SIM = {
   n: 10000,
   seed: 42,
-  start_datetime: "2026-06-13T08:00:00Z",
+  start_datetime: `${todayDate}T08:00:00Z`,
   tick_seconds: 30,
 };
 
@@ -21,7 +23,7 @@ export const SIM = {
 // capable); as_of_date is "today" so it reasons about live markets.
 export const PREDICT = {
   branch_ticks: 2,
-  as_of_date: "2026-06-13",
+  as_of_date: todayDate,
   model: "claude-sonnet-4-6",
 };
 

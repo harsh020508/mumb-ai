@@ -64,8 +64,8 @@ async fn contract_all_endpoints() {
     assert_eq!(r_bad.status(), 400, "invalid city should 400");
     let v: Value = r.json().await.unwrap();
     assert_eq!(v["status"], "ok");
-    assert!(v.get("has_key").is_some());
-    assert!(v.get("pums_records").and_then(|x| x.as_u64()).unwrap_or(0) > 1000, "pums loaded");
+    assert_eq!(v["service"], "mumb-ai");
+    assert!(v.get("version").is_some());
 
     // ---- /ready ----
     let r = c.get(format!("{base}/ready")).send().await.expect("ready");

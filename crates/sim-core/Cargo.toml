@@ -3,7 +3,7 @@ name = "simfrancisco"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.80"
-description = "SF digital-twin backend: synthetic-population prediction engine + life simulation"
+description = "mumb-ai: Five Indian Cities (Mumbai, Delhi, Bangalore, Kolkata, Jaipur) synthetic-population prediction engine + digital twin"
 
 [lib]
 name = "simfrancisco"

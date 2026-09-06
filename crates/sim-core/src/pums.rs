@@ -253,13 +253,16 @@ pub fn write_subset(records: &[PumsRecord], path: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn default_sf_path() -> String {
+pub fn default_pums_path() -> String {
+    std::env::var("PUMS_PATH").unwrap_or_else(|_| "data/mumbai_pums.csv".to_string())
+}
+pub fn _old_default_sf_path() -> String {
     std::env::var("SF_PUMS_PATH").unwrap_or_else(|_| "data/sf_pums.csv".to_string())
 }
 
 /// Load the committed SF subset.
 pub fn load_sf() -> Result<Vec<PumsRecord>> {
-    load_csv(&default_sf_path(), &SF_PUMAS)
+    load_csv(&default_pums_path(), &SF_PUMAS)
 }
 
 /// Load a city's committed PUMS subset (path + PUMA filter from its profile).

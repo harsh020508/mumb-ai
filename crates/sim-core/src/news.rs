@@ -37,7 +37,7 @@ pub fn path(slug: &str) -> String {
 pub fn load_filtered(slug: &str, as_of_date: &str) -> CityNews {
     let mut news = load(slug);
     if !as_of_date.is_empty() {
-        news.articles.retain(|a| a.date.is_empty() || a.date.as_str() <= as_of_date);
+        news.articles.retain(|a| !a.date.is_empty() && a.date.as_str() <= as_of_date);
     }
     news
 }
@@ -111,16 +111,17 @@ fn urlencode(s: &str) -> String {
 
 /// Pull recent headlines for a city from newsapi.org and map to our Article shape.
 /// Best-effort; article dates use the real publish date when present.
-pub async fn fetch_newsapi(query: &str, api_key: &str, date: &str) -> anyhow::Result<Vec<Article>> {
-    // searchIn=title keeps headlines actually ABOUT the city (not articles that merely
-    // mention it); sorted newest-first.
+pub async fn fetch_newsapi(query: &str, api_key: &str, _date: &str) -> anyhow::Result<Vec<Article>> {
+    // searchIn=title keeps headlines actually ABOUT the city; sorted newest-first.
     let url = format!(
-        "https://newsapi.org/v2/everything?q=%22{}%22&searchIn=title&language=en&sortBy=publishedAt&pageSize=10&apiKey={}",
-        urlencode(query),
-        api_key
+        "https://newsapi.org/v2/everything?q=%22{}%22&searchIn=title&language=en&sortBy=publishedAt&pageSize=10",
+        urlencode(query)
     );
-    let client = reqwest::Client::builder().user_agent("sim-francisco-daemon").build()?;
-    let v: serde_json::Value = client.get(&url).send().await?.json().await?;
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .user_agent("mumb-ai-daemon")
+        .build()?;
+    let v: serde_json::Value = client.get(&url).header("X-Api-Key", api_key).send().await?.json().await?;
     let mut out = Vec::new();
     if let Some(arr) = v.get("articles").and_then(|x| x.as_array()) {
         for a in arr {
@@ -133,7 +134,7 @@ pub async fn fetch_newsapi(query: &str, api_key: &str, date: &str) -> anyhow::Re
                 .and_then(|x| x.as_str())
                 .map(|s| s.chars().take(10).collect::<String>())
                 .filter(|s| s.len() == 10)
-                .unwrap_or_else(|| date.to_string());
+                .unwrap_or_default();
             out.push(Article {
                 headline,
                 summary: a.get("description").and_then(|x| x.as_str()).unwrap_or("").trim().to_string(),

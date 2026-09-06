@@ -2,7 +2,7 @@
 
 Everything the map/sprite track needs to connect, with zero backend questions.
 
-- **Base URL (production):** `https://sf-digital-twin-tp.fly.dev`
+- **Base URL (production):** `https://mumbai-digital-twin.fly.dev`
 - **Auth:** none for clients. The model API key lives only as a server-side fly secret; you
   never send it. CORS is wide-open (`Access-Control-Allow-Origin: *`), so browser fetch/EventSource work directly.
 - **Content type:** all POST bodies are JSON; all responses are JSON except the SSE stream.
@@ -23,7 +23,7 @@ const cities = await (await fetch(`${BASE}/cities`)).json();
 ```
 
 ```js
-const BASE = "https://sf-digital-twin-tp.fly.dev";
+const BASE = "https://mumbai-digital-twin.fly.dev";
 
 // 1) create a simulation (synthetic population (Mumbai default or configured city) sampled from real Census PUMS)
 const sim = await (await fetch(`${BASE}/simulations`, {

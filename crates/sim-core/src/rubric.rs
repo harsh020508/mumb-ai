@@ -33,7 +33,8 @@ pub struct Meta {
 #[derive(Debug, Clone, Deserialize)]
 pub struct Weights {
     pub elections_measures: f64,
-    pub resolved_markets_sf_informative: f64,
+    #[serde(alias = "resolved_markets_sf_informative", default)]
+    pub resolved_markets_city_informative: f64,
     #[serde(default)]
     pub resolved_markets_general: f64,
     #[serde(default)]
@@ -64,7 +65,8 @@ pub struct ElectionEntry {
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct ResolvedMarkets {
     #[serde(default)]
-    pub sf_opinion_informative: Vec<MarketEntry>,
+    #[serde(alias = "city_opinion_informative")]
+    pub city_opinion_informative: Vec<MarketEntry>,
     #[serde(default)]
     pub general_knowledge: Vec<MarketEntry>,
 }

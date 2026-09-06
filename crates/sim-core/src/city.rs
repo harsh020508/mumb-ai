@@ -202,7 +202,7 @@ Use ONLY knowledge available on the given date. Respond with STRICT JSON only, n
             prompt_name: "San Francisco".into(),
             demonym: "San Franciscan".into(),
             pumas: vec![7507, 7508, 7509, 7510, 7511, 7512, 7513, 7514],
-            pums_path: crate::pums::default_sf_path(),
+            pums_path: crate::pums::default_pums_path(),
             tiles_path: std::env::var("TILES_DB").unwrap_or_else(|_| "tiles.db".into()),
             neighborhoods: [
                 (7507, "Bayview / Hunters Point"),

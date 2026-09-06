@@ -162,6 +162,14 @@ const DEFAULT_BASE: &str = "https://claude-day-resource.services.ai.azure.com/op
 impl ModelClient {
     /// Build from environment. `MODEL_API_KEY` is required for live calls.
     /// Base URL is derived from `OPENAI_API_URL` (stripping `/responses`) or the default.
+    pub fn resolve_provider(&self, model: Model) -> Provider {
+        if !self.omniroute_key.is_empty() {
+            Provider::Omniroute
+        } else {
+            model.provider()
+        }
+    }
+
     pub fn from_env(cache: Option<Arc<Cache>>) -> Result<Self> {
         let api_key = std::env::var("MODEL_API_KEY").unwrap_or_default();
         let base = std::env::var("OPENAI_API_URL")
@@ -179,7 +187,8 @@ impl ModelClient {
             .unwrap_or_else(|_| "https://api.anthropic.com/v1/messages".to_string());
         let omniroute_key = std::env::var("OMNIROUTE_API_KEY").unwrap_or_default();
         let omniroute_url = std::env::var("OMNIROUTE_API_URL")
-            .unwrap_or_else(|_| "http://localhost:20128/v1".to_string());
+            .or_else(|_| std::env::var("OMNIROUTE_URL"))
+            .unwrap_or_else(|_| if !omniroute_key.is_empty() { "http://localhost:20128/v1".to_string() } else { String::new() });
         let http = reqwest::Client::builder()
             .timeout(Duration::from_secs(180))
             .connect_timeout(Duration::from_secs(15))
@@ -236,12 +245,26 @@ impl ModelClient {
         if self.offline {
             return Err(anyhow!("offline mode: cache miss for {}", model.id()));
         }
-        if model.provider() == Provider::Anthropic {
-            if self.anthropic_key.is_empty() {
-                return Err(anyhow!("ANTHROPIC_API_KEY not set"));
+        let provider = self.resolve_provider(model);
+        match provider {
+            Provider::Omniroute => {
+                if self.omniroute_key.is_empty() {
+                    return Err(anyhow!("OMNIROUTE_API_KEY not set"));
+                }
+                if self.omniroute_url.is_empty() {
+                    return Err(anyhow!("OMNIROUTE_API_URL not set"));
+                }
             }
-        } else if self.api_key.is_empty() {
-            return Err(anyhow!("MODEL_API_KEY not set"));
+            Provider::Anthropic => {
+                if self.anthropic_key.is_empty() {
+                    return Err(anyhow!("ANTHROPIC_API_KEY not set"));
+                }
+            }
+            Provider::AzureResponses | Provider::AzureChat => {
+                if self.api_key.is_empty() {
+                    return Err(anyhow!("MODEL_API_KEY not set"));
+                }
+            }
         }
         let text = self.call_live(model, system, user, max_tokens).await?;
         if let Some(c) = &self.cache {
@@ -258,7 +281,7 @@ impl ModelClient {
         max_tokens: u32,
     ) -> Result<String> {
         let _permit = self.sem.acquire().await.unwrap();
-        let provider = if !self.omniroute_key.is_empty() { Provider::Omniroute } else { model.provider() };
+        let provider = self.resolve_provider(model);
         let (url, body) = match provider {
             Provider::AzureResponses => {
                 let input = if system.is_empty() { user.to_string() } else { format!("{system}\n\n{user}") };

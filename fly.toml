@@ -1,7 +1,7 @@
 # fly.io config for the mumb-ai digital-twin backend.
 # MODEL_API_KEY is set as a secret (`fly secrets set MODEL_API_KEY=...`), NOT here.
-app = "sf-digital-twin-tp"
-primary_region = "sjc"
+app = "mumbai-digital-twin"
+primary_region = "bom"
 
 [build]
   dockerfile = "Dockerfile"

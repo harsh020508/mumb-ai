@@ -33,6 +33,34 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 /// Everything needed to run one city: its profile, map tiles, and PUMS records.
+pub struct RateLimiter {
+    requests: Mutex<HashMap<String, Vec<std::time::Instant>>>,
+    max_per_minute: usize,
+}
+
+impl RateLimiter {
+    pub fn new(max_per_minute: usize) -> Self {
+        Self {
+            requests: Mutex::new(HashMap::new()),
+            max_per_minute,
+        }
+    }
+
+    pub fn check(&self, client_id: &str) -> bool {
+        let now = std::time::Instant::now();
+        let mut map = self.requests.lock().unwrap_or_else(|p| p.into_inner());
+        let window = std::time::Duration::from_secs(60);
+        let timestamps = map.entry(client_id.to_string()).or_insert_with(Vec::new);
+        timestamps.retain(|t| now.duration_since(*t) < window);
+        if timestamps.len() >= self.max_per_minute {
+            false
+        } else {
+            timestamps.push(now);
+            true
+        }
+    }
+}
+
 pub struct CityRuntime {
     pub profile: Arc<CityProfile>,
     pub tiles: Arc<TilesDb>,
@@ -52,6 +80,8 @@ pub struct AppState {
     pub store: Arc<Store>,
     pub sims: Arc<Mutex<HashMap<String, Arc<SimContext>>>>,
     pub model_ok: Arc<Mutex<Option<bool>>>,
+    pub auth_token: Option<String>,
+    pub rate_limiter: Arc<RateLimiter>,
 }
 
 pub struct SimContext {
@@ -72,6 +102,58 @@ pub struct BranchState {
     pub engine: Mutex<SimEngine>,
     pub mode: String,
     pub model: Option<String>,
+    pub tx: tokio::sync::broadcast::Sender<SimEvent>,
+}
+
+async fn auth_and_rate_limit(
+    State(st): State<AppState>,
+    req: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> Result<axum::response::Response, (StatusCode, Json<Value>)> {
+    let path = req.uri().path().to_string();
+    let is_public = path == "/health" || path == "/ready" || path == "/" || path.starts_with("/assets/") || path == "/favicon.ico" || path == "/index.html";
+
+    if !is_public {
+        if let Some(ref expected_token) = st.auth_token {
+            let auth_header = req.headers().get("Authorization").and_then(|h| h.to_str().ok());
+            let api_key_header = req.headers().get("X-API-Key").and_then(|h| h.to_str().ok());
+            let mut authorized = false;
+            if let Some(auth) = auth_header {
+                if auth.strip_prefix("Bearer ").map(|t| t.trim()) == Some(expected_token) || auth == expected_token {
+                    authorized = true;
+                }
+            }
+            if let Some(key) = api_key_header {
+                if key == expected_token {
+                    authorized = true;
+                }
+            }
+            if !authorized {
+                return Err((
+                    StatusCode::UNAUTHORIZED,
+                    Json(json!({"error": "unauthorized: valid Bearer token or X-API-Key required"})),
+                ));
+            }
+        }
+    }
+
+    if path.starts_with("/api/") || path == "/simulations" || path.starts_with("/simulations/") || path.starts_with("/branches/") || path == "/parse" {
+        let client_ip = req.headers()
+            .get("X-Forwarded-For")
+            .and_then(|h| h.to_str().ok())
+            .map(|s| s.split(',').next().unwrap_or(s).trim())
+            .or_else(|| req.headers().get("X-Real-IP").and_then(|h| h.to_str().ok()))
+            .unwrap_or("127.0.0.1");
+
+        if !st.rate_limiter.check(client_ip) {
+            return Err((
+                StatusCode::TOO_MANY_REQUESTS,
+                Json(json!({"error": "rate limit exceeded", "retry_after": 60})),
+            ));
+        }
+    }
+
+    Ok(next.run(req).await)
 }
 
 async fn add_security_headers(
@@ -115,6 +197,7 @@ pub fn router(state: AppState) -> Router {
         .route("/branches/:bid/stream", get(branch_stream))
         .fallback_service(serve_dir)
         .layer(DefaultBodyLimit::max(2 * 1024 * 1024))
+        .layer(axum::middleware::from_fn_with_state(state.clone(), auth_and_rate_limit))
         .layer(axum::middleware::from_fn(add_security_headers))
         .layer(cors)
         .with_state(state)
@@ -136,13 +219,25 @@ async fn root() -> impl IntoResponse {
 
 
 async fn ready(State(st): State<AppState>) -> impl IntoResponse {
-    let cities_count = st.cities.len();
-    if cities_count > 0 && !st.records.is_empty() {
+    const REQUIRED_CITIES: &[&str] = &["mumbai", "delhi", "bangalore", "kolkata", "jaipur"];
+    let mut missing = Vec::new();
+    for city in REQUIRED_CITIES {
+        match st.cities.get(*city) {
+            Some(rt) => {
+                if rt.records.is_empty() || rt.tiles.manifest.chunks_x == 0 {
+                    missing.push(format!("{city} (empty records or tiles)"));
+                }
+            }
+            None => missing.push(city.to_string()),
+        }
+    }
+    if missing.is_empty() {
         (
             StatusCode::OK,
             Json(json!({
                 "status": "ready",
-                "cities_loaded": cities_count,
+                "cities_loaded": st.cities.len(),
+                "required_cities": REQUIRED_CITIES,
                 "pums_records": st.records.len(),
             })),
         )
@@ -152,8 +247,9 @@ async fn ready(State(st): State<AppState>) -> impl IntoResponse {
             StatusCode::SERVICE_UNAVAILABLE,
             Json(json!({
                 "status": "not_ready",
-                "cities_loaded": cities_count,
-                "pums_records": st.records.len(),
+                "cities_loaded": st.cities.len(),
+                "missing_cities": missing,
+                "required_cities": REQUIRED_CITIES,
             })),
         )
             .into_response()
@@ -183,26 +279,12 @@ async fn get_city_details(State(st): State<AppState>, Path(city): Path<String>) 
     })).into_response()
 }
 
-async fn health(State(st): State<AppState>) -> impl IntoResponse {
-    // Liveness must never block. Model reachability is checked ONCE in the background and
-    // memoized; until the first check returns, we report `null` (checking).
-    let cached = *lock_mutex(&st.model_ok);
-    if cached.is_none() && st.client.has_key() {
-        let client = st.client.clone();
-        let slot = st.model_ok.clone();
-        tokio::spawn(async move {
-            let ok = client.complete(Model::Grok43, "", "Reply with: OK", 16).await.is_ok();
-            *slot.lock().unwrap() = Some(ok);
-        });
-    }
+async fn health() -> impl IntoResponse {
     Json(json!({
         "status": "ok",
-        "model_reachable": cached,
-        "has_key": st.client.has_key(),
-        "map_chunks": st.tiles.manifest.chunks_x * st.tiles.manifest.chunks_y,
-        "pums_records": st.records.len(),
-        "sf_pums_records": st.records.len(),
-        "usage": st.client.usage.snapshot(),
+        "service": "mumb-ai",
+        "version": env!("CARGO_PKG_VERSION"),
+        "timestamp": chrono::Utc::now().to_rfc3339(),
     }))
 }
 
@@ -291,6 +373,7 @@ async fn create_sim(State(st): State<AppState>, Json(req): Json<CreateSimReq>) -
     let init_state = engine.state.clone();
     let _ = st.store.create_sim(&sim_id, &meta, &static_blob, &init_state);
 
+    let (tx_main, _) = tokio::sync::broadcast::channel(256);
     let main = Arc::new(BranchState {
         id: format!("{sim_id}:main"),
         sim_id: sim_id.clone(),
@@ -299,6 +382,7 @@ async fn create_sim(State(st): State<AppState>, Json(req): Json<CreateSimReq>) -
         engine: Mutex::new(engine),
         mode: "clean".into(),
         model: None,
+        tx: tx_main,
     });
     let ctx = Arc::new(SimContext {
         id: sim_id.clone(),
@@ -441,13 +525,19 @@ async fn create_branch(State(st): State<AppState>, Path(id): Path<String>, Json(
     let main_head = st.store.branch_head(&format!("{id}:main")).ok();
     if let Some(head) = main_head {
         if let Ok(info) = st.store.create_branch(&id, head, &branch_id, &name) {
-            let _ = st.store.commit(&id, &branch_id, &engine.state, "after-ticks");
+            if let Err(e) = st.store.commit(&id, &branch_id, &engine.state, "after-ticks") {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"error": format!("failed to commit branch state to store: {e:#}")})),
+                ).into_response();
+            }
             let _ = info;
         }
     }
 
     let clock = engine.state.clock_secs;
     let tick = engine.state.tick;
+    let (tx_b, _) = tokio::sync::broadcast::channel(256);
     let bs = Arc::new(BranchState {
         id: branch_id.clone(),
         sim_id: id.clone(),
@@ -456,6 +546,7 @@ async fn create_branch(State(st): State<AppState>, Path(id): Path<String>, Json(
         engine: Mutex::new(engine),
         mode: req.mode.clone().unwrap_or_else(|| "social".into()),
         model: req.model.clone(),
+        tx: tx_b,
     });
     lock_mutex(&ctx.branches).insert(branch_id.clone(), bs);
 
@@ -552,6 +643,9 @@ async fn branch_agents(State(st): State<AppState>, Path(bid): Path<String>, Quer
     let mut out = Vec::new();
     let mut matched = 0usize;
     for ast in e.state.agents.iter() {
+        if !ast.alive {
+            continue;
+        }
         let agent = match ctx.population.agents.get(ast.id as usize) {
             Some(a) => a,
             None => continue, // born agents have no static persona record
@@ -643,7 +737,7 @@ async fn predict_market(State(st): State<AppState>, Path(bid): Path<String>, Jso
         return (StatusCode::BAD_REQUEST, Json(json!({"error":"question required"}))).into_response();
     }
     let as_of = req.get("as_of_date").and_then(|x| x.as_str()).unwrap_or("2024-01-01").to_string();
-    let bucket = req.get("bucket").and_then(|x| x.as_str()).unwrap_or("sf_opinion_informative").to_string();
+    let bucket = req.get("bucket").and_then(|x| x.as_str()).unwrap_or("city_opinion_informative").to_string();
     let model = req.get("model").and_then(|x| x.as_str()).map(|s| s.to_string()).or_else(|| bs.model.clone());
     let poll = Poll {
         question: question.clone(),
@@ -664,7 +758,7 @@ async fn predict_market(State(st): State<AppState>, Path(bid): Path<String>, Jso
             "ci": [res.ci_low, res.ci_high],
             "n_agents": res.n_agents,
             "model": res.model,
-            "note": "headline market number weights the sf_opinion_informative bucket; general_knowledge is reported separately.",
+            "note": "headline market number weights the city_opinion_informative bucket; general_knowledge is reported separately.",
             "live_market_price": req.get("live_market_price"),
         })).into_response(),
         Err(e) => (StatusCode::BAD_GATEWAY, Json(json!({"error": format!("market poll failed: {e}")}))).into_response(),
@@ -987,6 +1081,13 @@ pub fn build_state(_tiles_path: &str, cache_path: Option<&str>, state_db: &str) 
 
     let resolved_default = default_rt.profile.slug.clone();
 
+    let auth_token = std::env::var("AUTH_TOKEN")
+        .or_else(|_| std::env::var("BEARER_TOKEN"))
+        .or_else(|_| std::env::var("API_KEY"))
+        .ok()
+        .filter(|t| !t.is_empty());
+    let rate_limiter = Arc::new(RateLimiter::new(120));
+
     Ok(AppState {
         client,
         engine,
@@ -997,6 +1098,8 @@ pub fn build_state(_tiles_path: &str, cache_path: Option<&str>, state_db: &str) 
         store,
         sims: Arc::new(Mutex::new(HashMap::new())),
         model_ok: Arc::new(Mutex::new(None)),
+        auth_token,
+        rate_limiter,
     })
 }
 

@@ -98,23 +98,37 @@ fn from_json(text: &str, city: &str) -> ParsedQuestion {
             .unwrap_or_else(|| default_examples(city));
         return ParsedQuestion::unsupported(&reason, examples);
     }
-    let framing = v
-        .get("framing")
-        .and_then(|x| x.as_str())
-        .map(|s| s.to_lowercase())
-        .filter(|s| s == "vote" || s == "belief" || s == "options")
-        .unwrap_or_else(|| "vote".to_string());
+    let framing = match v.get("framing").and_then(|x| x.as_str()).map(|s| s.to_lowercase()) {
+        Some(s) if s == "vote" || s == "belief" || s == "options" => s,
+        _ => {
+            return ParsedQuestion::unsupported(
+                "Invalid framing returned by router (must be vote, belief, or options).",
+                default_examples(city),
+            );
+        }
+    };
+    let question = v.get("question").and_then(|x| x.as_str()).unwrap_or("").trim().to_string();
+    if question.is_empty() {
+        return ParsedQuestion::unsupported(
+            "Router returned an empty question.",
+            default_examples(city),
+        );
+    }
     let options: Vec<String> = v
         .get("options")
         .and_then(|x| x.as_array())
         .map(|a| a.iter().filter_map(|x| x.as_str().map(|s| s.to_string())).collect())
         .unwrap_or_default();
-    // A declared "options" framing with <2 options falls back to vote.
-    let framing = if framing == "options" && options.len() < 2 { "vote".to_string() } else { framing };
+    if framing == "options" && options.len() < 2 {
+        return ParsedQuestion::unsupported(
+            "Options framing requires at least 2 distinct choices.",
+            default_examples(city),
+        );
+    }
     ParsedQuestion {
         supported: true,
         framing,
-        question: v.get("question").and_then(|x| x.as_str()).unwrap_or("").to_string(),
+        question,
         description: v.get("description").and_then(|x| x.as_str()).unwrap_or("").to_string(),
         options,
         reason: String::new(),

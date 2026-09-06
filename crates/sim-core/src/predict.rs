@@ -294,6 +294,7 @@ p_yes is a probability between 0 and 1. Be realistic and calibrated to {city_nam
             vec![vec![1.0 / n_opts.max(1) as f64; n_opts]; clusters.len()];
 
         let mut calls = 0usize;
+        let mut failed_batches = 0usize;
         let mut batch_start = 0usize;
         let mut futs = Vec::new();
         while batch_start < clusters.len() {
@@ -319,7 +320,7 @@ p_yes is a probability between 0 and 1. Be realistic and calibrated to {city_nam
         for (idxs, resp) in results {
             match resp {
                 Ok(text) => {
-                    if let Ok(v) = extract_json(&text) {
+                    let parsed_ok = if let Ok(v) = extract_json(&text) {
                         if let Some(arr) = v.as_array() {
                             for (k, item) in arr.iter().enumerate() {
                                 if k >= idxs.len() {
@@ -345,13 +346,21 @@ p_yes is a probability between 0 and 1. Be realistic and calibrated to {city_nam
                                     rationale[ci] = w.to_string();
                                 }
                             }
-                        }
+                            true
+                        } else { false }
+                    } else { false };
+                    if !parsed_ok {
+                        failed_batches += 1;
                     }
                 }
                 Err(e) => {
                     tracing::warn!("poll batch failed: {e}");
                 }
             }
+        }
+
+        if failed_batches > 0 && failed_batches >= calls {
+            anyhow::bail!("all LLM prediction batches failed ({} failed calls)", failed_batches);
         }
 
         // multi-option framing: aggregate the per-archetype distribution over agents.
@@ -383,13 +392,15 @@ p_yes is a probability between 0 and 1. Be realistic and calibrated to {city_nam
                 poll.options.iter().cloned().zip(dist.iter().cloned()).collect();
             let sample_rationales: Vec<String> =
                 rationale.iter().filter(|r| !r.is_empty()).take(8).cloned().collect();
+            let top_rows: Vec<(f64, f64)> = answers.iter().map(|a| (a.weight, a.probs.iter().cloned().fold(0.0f64, f64::max))).collect();
+            let (ci_l, ci_h) = aggregate::weighted_bootstrap_ci(&top_rows, 100, 0.05, 42);
             return Ok(PollResult {
                 question: poll.question.clone(),
                 as_of_date: poll.as_of_date.clone(),
                 model: model.id().to_string(),
                 p_yes: p_top,
-                ci_low: 0.0,
-                ci_high: 0.0,
+                ci_low: ci_l,
+                ci_high: ci_h,
                 n_agents: answers.len(),
                 n_eff: aggregate::effective_n(&weights),
                 design_effect: aggregate::design_effect(&weights),

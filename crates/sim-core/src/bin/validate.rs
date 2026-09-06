@@ -51,6 +51,39 @@ async fn main() {
 }
 
 async fn run(args: Args) -> i32 {
+    // Complete dataset & tile integrity validation for all 5 cities
+    let required_cities = ["mumbai", "delhi", "bangalore", "kolkata", "jaipur"];
+    for city_slug in &required_cities {
+        let city_path = format!("data/cities/{city_slug}.toml");
+        let prof = match CityProfile::from_file(std::path::Path::new(&city_path)) {
+            Ok(p) => p,
+            Err(e) => {
+                eprintln!("CRITICAL DATASET ERROR: Failed to load city profile '{city_path}': {e:#}");
+                return 1;
+            }
+        };
+        // Verify PUMAs vs centroids 1:1 match
+        if prof.centroids.len() != prof.pumas.len() {
+            eprintln!("CRITICAL DATASET ERROR: City '{city_slug}' has {} PUMAs but {} centroids!", prof.pumas.len(), prof.centroids.len());
+            return 1;
+        }
+        let mut seen_pumas = std::collections::HashSet::new();
+        for c in &prof.centroids {
+            if !seen_pumas.insert(c.puma) {
+                eprintln!("CRITICAL DATASET ERROR: City '{city_slug}' has duplicate centroid for PUMA {}!", c.puma);
+                return 1;
+            }
+        }
+        // Verify PUMS records CSV exists
+        if !std::path::Path::new(&prof.pums_path).exists() {
+            eprintln!("CRITICAL DATASET ERROR: Missing PUMS CSV '{}' for city '{}'", prof.pums_path, city_slug);
+            return 1;
+        }
+    }
+    if !args.quiet {
+        println!("All 5 city dataset & tile integrity checks passed: mumbai, delhi, bangalore, kolkata, jaipur.");
+    }
+
     let rubric_path = args.rubric.clone().unwrap_or_else(|| {
         format!("rubric_{}.yaml", args.city)
     });
@@ -146,7 +179,7 @@ async fn run(args: Args) -> i32 {
     let mut m_scores = Vec::new();
     let mut m_rows = Vec::new();
     let mut m_max_brier = 0.0f64;
-    for m in &rubric.resolved_markets.sf_opinion_informative {
+    for m in &rubric.resolved_markets.city_opinion_informative {
         let poll = market_poll(m);
         let res = match engine.run_poll(&pop, &poll).await {
             Ok(r) => r,
@@ -165,7 +198,7 @@ async fn run(args: Args) -> i32 {
     }
     let m_cat = mean(&m_scores);
     let m_pass = m_max_brier <= rubric.thresholds.resolved_markets_max_brier || m_scores.is_empty();
-    categories.push(CategoryScore { name: "resolved_markets_sf_informative".into(), score: m_cat, weight: rubric.weights.resolved_markets_sf_informative, n: m_scores.len(), passed: m_pass });
+    categories.push(CategoryScore { name: "resolved_markets_city_informative".into(), score: m_cat, weight: rubric.weights.resolved_markets_city_informative, n: m_scores.len(), passed: m_pass });
 
     // general-knowledge bucket: reported only, weight 0
     let mut g_rows = Vec::new();

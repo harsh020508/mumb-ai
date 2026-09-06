@@ -5,12 +5,48 @@ on:
   pull_request:
 
 jobs:
-  integration:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Check code formatting
+        run: cargo fmt --check
+
+      - name: Run Clippy lints
+        run: cargo clippy --workspace -- -D warnings
+
+      - name: Run unit & integration tests
+        run: cargo test --package simfrancisco
+
+      - name: Build release binaries
+        run: cargo build --release --package simfrancisco
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Geography + integration checks
-        run: python3 scripts/verify_integration.py
+
+      - name: Run geography & dataset verification
+        run: |
+          python3 scripts/verify_integration.py
+          cargo run --package simfrancisco --bin validate -- --quiet
+
+      - name: Docker build smoke test
+        run: docker build -t mumb-ai-test .
