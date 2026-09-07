@@ -1,40 +1,59 @@
 /// Phase 7 tests: slope-aware collision costs.
-
 use sim_maps::{
     dem::compute_max_rise,
     pipeline::semantic_to_collision,
     topo::slope_cost_modifier,
-    types::{Grid, SemanticClass, collision},
+    types::{collision, Grid, SemanticClass},
 };
 
 // ── slope_cost_modifier unit tests ───────────────────────────────────────────
 
 #[test]
 fn flat_terrain_no_modifier() {
-    assert_eq!(slope_cost_modifier(0.0,  1.5), 0, "zero rise → +0");
+    assert_eq!(slope_cost_modifier(0.0, 1.5), 0, "zero rise → +0");
     assert_eq!(slope_cost_modifier(0.49, 1.5), 0, "below threshold/3 → +0");
 }
 
 #[test]
 fn gentle_slope_adds_one() {
     // threshold/3 = 0.5, threshold*2/3 = 1.0
-    assert_eq!(slope_cost_modifier(0.51, 1.5), 1, "just above threshold/3 → +1");
-    assert_eq!(slope_cost_modifier(0.9,  1.5), 1, "mid gentle slope → +1");
-    assert_eq!(slope_cost_modifier(0.99, 1.5), 1, "just below threshold*2/3 → +1");
+    assert_eq!(
+        slope_cost_modifier(0.51, 1.5),
+        1,
+        "just above threshold/3 → +1"
+    );
+    assert_eq!(slope_cost_modifier(0.9, 1.5), 1, "mid gentle slope → +1");
+    assert_eq!(
+        slope_cost_modifier(0.99, 1.5),
+        1,
+        "just below threshold*2/3 → +1"
+    );
 }
 
 #[test]
 fn steep_slope_adds_two() {
     // threshold*2/3 = 1.0, threshold = 1.5
-    assert_eq!(slope_cost_modifier(1.0,  1.5), 2, "at threshold*2/3 → +2");
-    assert_eq!(slope_cost_modifier(1.2,  1.5), 2, "mid steep slope → +2");
-    assert_eq!(slope_cost_modifier(1.49, 1.5), 2, "just below threshold → +2");
+    assert_eq!(slope_cost_modifier(1.0, 1.5), 2, "at threshold*2/3 → +2");
+    assert_eq!(slope_cost_modifier(1.2, 1.5), 2, "mid steep slope → +2");
+    assert_eq!(
+        slope_cost_modifier(1.49, 1.5),
+        2,
+        "just below threshold → +2"
+    );
 }
 
 #[test]
 fn at_or_above_threshold_no_modifier() {
-    assert_eq!(slope_cost_modifier(1.5, 1.5), 0, "at threshold → already cliff/stairs");
-    assert_eq!(slope_cost_modifier(3.0, 1.5), 0, "well above threshold → +0");
+    assert_eq!(
+        slope_cost_modifier(1.5, 1.5),
+        0,
+        "at threshold → already cliff/stairs"
+    );
+    assert_eq!(
+        slope_cost_modifier(3.0, 1.5),
+        0,
+        "well above threshold → +0"
+    );
 }
 
 #[test]
@@ -47,17 +66,29 @@ fn zero_threshold_does_not_panic() {
 fn modifier_scales_with_threshold() {
     let t = 3.0_f32;
     // gentle band: (t/3, t*2/3) = (1.0, 2.0) → +1
-    assert_eq!(slope_cost_modifier(t * 0.4, t), 1, "40% of threshold is in gentle band");
+    assert_eq!(
+        slope_cost_modifier(t * 0.4, t),
+        1,
+        "40% of threshold is in gentle band"
+    );
     // steep band: [t*2/3, t) = [2.0, 3.0) → +2
-    assert_eq!(slope_cost_modifier(t * 0.8, t), 2, "80% of threshold is in steep band");
+    assert_eq!(
+        slope_cost_modifier(t * 0.8, t),
+        2,
+        "80% of threshold is in steep band"
+    );
     // above threshold → +0
-    assert_eq!(slope_cost_modifier(t * 1.2, t), 0, "above threshold → cliff/stairs, no modifier");
+    assert_eq!(
+        slope_cost_modifier(t * 1.2, t),
+        0,
+        "above threshold → cliff/stairs, no modifier"
+    );
 }
 
 // ── slope modifier integration: collision layer ───────────────────────────────
 
 fn coll(class: SemanticClass, rise_val: f32) -> u8 {
-    let sem  = Grid::filled(1, 1, class);
+    let sem = Grid::filled(1, 1, class);
     let rise = Grid::filled(1, 1, rise_val);
     *semantic_to_collision(&sem, &rise, false, 1.5).get(0, 0)
 }
@@ -99,10 +130,14 @@ fn cost_never_reaches_blocked_from_modifier() {
 
 #[test]
 fn building_floor_blocked_ignores_slope() {
-    let sem  = Grid::filled(1, 1, SemanticClass::BuildingFloor);
+    let sem = Grid::filled(1, 1, SemanticClass::BuildingFloor);
     let rise = Grid::filled(1, 1, 1.2_f32);
     let c = *semantic_to_collision(&sem, &rise, true, 1.5).get(0, 0);
-    assert_eq!(c, collision::BLOCKED, "building_blocked=true → BLOCKED regardless of slope");
+    assert_eq!(
+        c,
+        collision::BLOCKED,
+        "building_blocked=true → BLOCKED regardless of slope"
+    );
 }
 
 // ── compute_max_rise integration ──────────────────────────────────────────────
@@ -127,8 +162,8 @@ fn step_edge_has_expected_rise() {
     let rise = compute_max_rise(&elev);
     assert_eq!(*rise.get(1, 0), 10.0, "col 1 neighbors col 2 with rise 10");
     assert_eq!(*rise.get(2, 0), 10.0, "col 2 neighbors col 1 with rise 10");
-    assert_eq!(*rise.get(0, 0),  0.0, "col 0 isolated from step");
-    assert_eq!(*rise.get(3, 0),  0.0, "col 3 uniform with col 2");
+    assert_eq!(*rise.get(0, 0), 0.0, "col 0 isolated from step");
+    assert_eq!(*rise.get(3, 0), 0.0, "col 3 uniform with col 2");
 }
 
 #[test]

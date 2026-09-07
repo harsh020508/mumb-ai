@@ -3,9 +3,9 @@
 //! the life-sim drives positions + the SSE stream for the frontend.
 
 use crate::agent::Agent;
+use crate::city::CityProfile;
 use crate::geo::TilesDb;
 use crate::model::{Cache, Model, ModelClient};
-use crate::city::CityProfile;
 use crate::persona::{build_population_with, Population};
 
 fn lock_mutex<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
@@ -103,6 +103,8 @@ pub struct BranchState {
     pub mode: String,
     pub model: Option<String>,
     pub tx: tokio::sync::broadcast::Sender<SimEvent>,
+    // Background tick task for this branch. Stored in a Tokio Mutex for safe async mutation.
+    pub ticker: Arc<tokio::sync::Mutex<Option<tokio::task::JoinHandle<()>>>>,
 }
 
 async fn auth_and_rate_limit(
@@ -111,15 +113,25 @@ async fn auth_and_rate_limit(
     next: axum::middleware::Next,
 ) -> Result<axum::response::Response, (StatusCode, Json<Value>)> {
     let path = req.uri().path().to_string();
-    let is_public = path == "/health" || path == "/ready" || path == "/" || path.starts_with("/assets/") || path == "/favicon.ico" || path == "/index.html";
+    let is_public = path == "/health"
+        || path == "/ready"
+        || path == "/"
+        || path.starts_with("/assets/")
+        || path == "/favicon.ico"
+        || path == "/index.html";
 
     if !is_public {
         if let Some(ref expected_token) = st.auth_token {
-            let auth_header = req.headers().get("Authorization").and_then(|h| h.to_str().ok());
+            let auth_header = req
+                .headers()
+                .get("Authorization")
+                .and_then(|h| h.to_str().ok());
             let api_key_header = req.headers().get("X-API-Key").and_then(|h| h.to_str().ok());
             let mut authorized = false;
             if let Some(auth) = auth_header {
-                if auth.strip_prefix("Bearer ").map(|t| t.trim()) == Some(expected_token) || auth == expected_token {
+                if auth.strip_prefix("Bearer ").map(|t| t.trim()) == Some(expected_token)
+                    || auth == expected_token
+                {
                     authorized = true;
                 }
             }
@@ -131,14 +143,22 @@ async fn auth_and_rate_limit(
             if !authorized {
                 return Err((
                     StatusCode::UNAUTHORIZED,
-                    Json(json!({"error": "unauthorized: valid Bearer token or X-API-Key required"})),
+                    Json(
+                        json!({"error": "unauthorized: valid Bearer token or X-API-Key required"}),
+                    ),
                 ));
             }
         }
     }
 
-    if path.starts_with("/api/") || path == "/simulations" || path.starts_with("/simulations/") || path.starts_with("/branches/") || path == "/parse" {
-        let client_ip = req.headers()
+    if path.starts_with("/api/")
+        || path == "/simulations"
+        || path.starts_with("/simulations/")
+        || path.starts_with("/branches/")
+        || path == "/parse"
+    {
+        let client_ip = req
+            .headers()
             .get("X-Forwarded-For")
             .and_then(|h| h.to_str().ok())
             .map(|s| s.split(',').next().unwrap_or(s).trim())
@@ -156,35 +176,83 @@ async fn auth_and_rate_limit(
     Ok(next.run(req).await)
 }
 
+/// Spawn a background ticker for a branch that repeatedly ticks the engine
+/// and broadcasts events on the branch's broadcast channel.
+/// The task handle is stored inside the branch's `ticker` field for later
+/// cancellation (e.g. on branch deletion).
+async fn spawn_branch_ticker(bs: Arc<BranchState>) {
+    // Clone the broadcast sender for the task.
+    let tx = bs.tx.clone();
+    // The ticker task runs indefinitely, ticking the engine at a fixed interval.
+    let bs_clone = bs.clone();
+    let handle = tokio::spawn(async move {
+        loop {
+            // Generate tick events. The engine is protected by a sync Mutex.
+            let events: Vec<SimEvent> = { bs_clone.engine.lock().unwrap().tick() };
+            // Broadcast each event.
+            for ev in events {
+                // Ignore failures if there are no listeners.
+                let _ = tx.send(ev);
+            }
+            // Sleep between ticks. The duration mirrors the previous SSE implementation.
+            tokio::time::sleep(Duration::from_millis(400)).await;
+        }
+    });
+    // Store the handle for later cancellation.
+    let mut guard = bs.ticker.lock().await;
+    *guard = Some(handle);
+}
+
 async fn add_security_headers(
     req: axum::extract::Request,
     next: axum::middleware::Next,
 ) -> axum::response::Response {
     let mut resp = next.run(req).await;
     let headers = resp.headers_mut();
-    headers.insert("x-content-type-options", axum::http::HeaderValue::from_static("nosniff"));
-    headers.insert("x-frame-options", axum::http::HeaderValue::from_static("DENY"));
-    headers.insert("x-xss-protection", axum::http::HeaderValue::from_static("1; mode=block"));
-    headers.insert("referrer-policy", axum::http::HeaderValue::from_static("strict-origin-when-cross-origin"));
+    headers.insert(
+        "x-content-type-options",
+        axum::http::HeaderValue::from_static("nosniff"),
+    );
+    headers.insert(
+        "x-frame-options",
+        axum::http::HeaderValue::from_static("DENY"),
+    );
+    headers.insert(
+        "x-xss-protection",
+        axum::http::HeaderValue::from_static("1; mode=block"),
+    );
+    headers.insert(
+        "referrer-policy",
+        axum::http::HeaderValue::from_static("strict-origin-when-cross-origin"),
+    );
     resp
 }
 
 pub fn router(state: AppState) -> Router {
     use axum::extract::DefaultBodyLimit;
     use tower_http::cors::{Any, CorsLayer};
-    let cors = CorsLayer::new().allow_origin(Any).allow_methods(Any).allow_headers(Any);
-    use tower_http::services::ServeDir;
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
+    use tower_http::services::{ServeDir, ServeFile};
     let serve_dir = ServeDir::new("frontend");
 
     Router::new()
         .route("/health", get(health))
         .route("/ready", get(ready))
-        .route("/", get(root))
+        .route(
+            "/",
+            axum::routing::get_service(ServeFile::new("frontend/index.html")),
+        )
+        .route("/api", get(root))
+        .route("/version", get(root))
         .route("/cities", get(list_cities))
         .route("/cities/:city", get(get_city_details))
         .route("/cities/:city/parse", post(parse_question_handler))
         .route("/cities/:city/news", get(city_news))
         .route("/simulations", post(create_sim))
+        .route("/simulations/:id", delete(delete_sim))
         .route("/simulations/:id/demographics", get(demographics))
         .route("/simulations/:id/branches", post(create_branch))
         .route("/simulations/:id/reset-to-main", post(reset_to_main))
@@ -197,7 +265,10 @@ pub fn router(state: AppState) -> Router {
         .route("/branches/:bid/stream", get(branch_stream))
         .fallback_service(serve_dir)
         .layer(DefaultBodyLimit::max(2 * 1024 * 1024))
-        .layer(axum::middleware::from_fn_with_state(state.clone(), auth_and_rate_limit))
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            auth_and_rate_limit,
+        ))
         .layer(axum::middleware::from_fn(add_security_headers))
         .layer(cors)
         .with_state(state)
@@ -216,7 +287,6 @@ async fn root() -> impl IntoResponse {
         ]
     }))
 }
-
 
 async fn ready(State(st): State<AppState>) -> impl IntoResponse {
     const REQUIRED_CITIES: &[&str] = &["mumbai", "delhi", "bangalore", "kolkata", "jaipur"];
@@ -256,10 +326,19 @@ async fn ready(State(st): State<AppState>) -> impl IntoResponse {
     }
 }
 
-async fn get_city_details(State(st): State<AppState>, Path(city): Path<String>) -> impl IntoResponse {
+async fn get_city_details(
+    State(st): State<AppState>,
+    Path(city): Path<String>,
+) -> impl IntoResponse {
     let rt = match st.cities.get(&city) {
         Some(rt) => rt,
-        None => return (StatusCode::NOT_FOUND, Json(json!({"error": format!("unknown city: {city}")}))).into_response(),
+        None => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error": format!("unknown city: {city}")})),
+            )
+                .into_response()
+        }
     };
     let m = &rt.tiles.manifest;
     let news = crate::news::load(&city);
@@ -276,7 +355,8 @@ async fn get_city_details(State(st): State<AppState>, Path(city): Path<String>) 
         "religion_weights": rt.profile.religion_weights,
         "knowledge_date": news.date,
         "default": rt.profile.slug == st.default_city,
-    })).into_response()
+    }))
+    .into_response()
 }
 
 async fn health() -> impl IntoResponse {
@@ -305,24 +385,80 @@ struct CreateSimReq {
     #[serde(default)]
     distributional_params: Option<Value>,
 }
-fn default_n() -> usize { 800 }
-fn default_seed() -> u64 { 42 }
-fn default_start() -> String { "2024-11-01T08:00:00Z".to_string() }
-fn default_tick() -> i64 { 30 }
-fn default_commit() -> u64 { 20 }
+fn default_n() -> usize {
+    800
+}
+fn default_seed() -> u64 {
+    42
+}
+fn default_start() -> String {
+    "2024-11-01T08:00:00Z".to_string()
+}
+fn default_tick() -> i64 {
+    30
+}
+fn default_commit() -> u64 {
+    20
+}
 
-async fn create_sim(State(st): State<AppState>, Json(req): Json<CreateSimReq>) -> impl IntoResponse {
+async fn delete_sim(State(st): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
+    let mut sims = lock_mutex(&st.sims);
+    if let Some(_ctx) = sims.remove(&id) {
+        let _ = st.store.delete_sim(&id);
+        return Json(json!({"deleted": id})).into_response();
+    }
+    (
+        StatusCode::NOT_FOUND,
+        Json(json!({"error":"simulation not found"})),
+    )
+        .into_response()
+}
+
+async fn create_sim(
+    State(st): State<AppState>,
+    Json(req): Json<CreateSimReq>,
+) -> impl IntoResponse {
     {
         let sims = lock_mutex(&st.sims);
         if sims.len() >= 50 {
             return (
                 StatusCode::TOO_MANY_REQUESTS,
-                Json(json!({"error": "active simulation limit reached (max 50 active simulations)"})),
+                Json(
+                    json!({"error": "active simulation limit reached (max 50 active simulations)"}),
+                ),
             )
                 .into_response();
         }
     }
-    let n = req.n.clamp(1, 50_000);
+    if req.n < 1 || req.n > 50_000 {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "n must be between 1 and 50000"})),
+        )
+            .into_response();
+    }
+    if req.tick_seconds < 1 || req.tick_seconds > 86400 {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "tick_seconds must be between 1 and 86400"})),
+        )
+            .into_response();
+    }
+    if req.commit_every < 1 || req.commit_every > 1000 {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "commit_every must be between 1 and 1000"})),
+        )
+            .into_response();
+    }
+    if chrono::DateTime::parse_from_rfc3339(&req.start_datetime).is_err() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "invalid start_datetime (must be valid RFC3339 timestamp)"})),
+        )
+            .into_response();
+    }
+    let n = req.n;
     let city_slug = req.city.clone().unwrap_or_else(|| st.default_city.clone());
     let rt = match st.cities.get(&city_slug) {
         Some(r) => r.clone(),
@@ -358,8 +494,22 @@ async fn create_sim(State(st): State<AppState>, Json(req): Json<CreateSimReq>) -
         let pop_arc = Arc::new(pop);
         let engine = SimEngine::new(rt2.tiles.clone(), pop_arc.clone(), start_secs, tick_secs);
         (pop_arc, engine)
-    }).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("population build failed: {e}")})))).unwrap();
-    let sim_id = format!("sim-{}-{}-{}-{}", city_slug, req.seed, n, short_hash(&format!("{}{}", req.start_datetime, req.tick_seconds)));
+    })
+    .await
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": format!("population build failed: {e}")})),
+        )
+    })
+    .unwrap();
+    let sim_id = format!(
+        "sim-{}-{}-{}-{}",
+        city_slug,
+        req.seed,
+        n,
+        short_hash(&format!("{}{}", req.start_datetime, req.tick_seconds))
+    );
     let meta = SimMeta {
         seed: req.seed,
         n,
@@ -371,7 +521,9 @@ async fn create_sim(State(st): State<AppState>, Json(req): Json<CreateSimReq>) -
     // persist static layer + init snapshot for the branching store
     let static_blob = serde_json::to_string(&StaticLayer::from_pop(&pop_arc)).unwrap_or_default();
     let init_state = engine.state.clone();
-    let _ = st.store.create_sim(&sim_id, &meta, &static_blob, &init_state);
+    let _ = st
+        .store
+        .create_sim(&sim_id, &meta, &static_blob, &init_state);
 
     let (tx_main, _) = tokio::sync::broadcast::channel(256);
     let main = Arc::new(BranchState {
@@ -383,7 +535,9 @@ async fn create_sim(State(st): State<AppState>, Json(req): Json<CreateSimReq>) -
         mode: "clean".into(),
         model: None,
         tx: tx_main,
+        ticker: Arc::new(tokio::sync::Mutex::new(None)),
     });
+    spawn_branch_ticker(main.clone()).await;
     let ctx = Arc::new(SimContext {
         id: sim_id.clone(),
         meta,
@@ -395,20 +549,29 @@ async fn create_sim(State(st): State<AppState>, Json(req): Json<CreateSimReq>) -
     lock_mutex(&st.sims).insert(sim_id.clone(), ctx);
     let _ = req.distributional_params; // accepted; reserved for per-demographic seeding
 
-    (StatusCode::CREATED, Json(json!({
-        "simulation_id": sim_id,
-        "city": city_slug,
-        "n": n,
-        "main_branch": format!("{sim_id}:main"),
-        "start_datetime": req.start_datetime,
-    })))
-    .into_response()
+    (
+        StatusCode::CREATED,
+        Json(json!({
+            "simulation_id": sim_id,
+            "city": city_slug,
+            "n": n,
+            "main_branch": format!("{sim_id}:main"),
+            "start_datetime": req.start_datetime,
+        })),
+    )
+        .into_response()
 }
 
 async fn demographics(State(st): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
     let ctx = match lock_mutex(&st.sims).get(&id).cloned() {
         Some(c) => c,
-        None => return (StatusCode::NOT_FOUND, Json(json!({"error":"simulation not found"}))).into_response(),
+        None => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error":"simulation not found"})),
+            )
+                .into_response()
+        }
     };
     // target marginals = full SF PUMS (weighted) == ACS; empirical = sampled population.
     let target = marginals_from_records(&ctx.city.records);
@@ -431,7 +594,8 @@ async fn demographics(State(st): State<AppState>, Path(id): Path<String>) -> imp
         "total_weight": ctx.population.total_weight(),
         "variables": comparison,
         "all_within_tolerance": all_pass,
-    })).into_response()
+    }))
+    .into_response()
 }
 
 #[derive(Deserialize)]
@@ -453,24 +617,42 @@ struct BranchEvent {
     #[serde(default)]
     progressive_coded: Option<bool>,
 }
-fn default_ticks() -> usize { 20 }
+fn default_ticks() -> usize {
+    20
+}
 
-async fn create_branch(State(st): State<AppState>, Path(id): Path<String>, Json(req): Json<CreateBranchReq>) -> impl IntoResponse {
+async fn create_branch(
+    State(st): State<AppState>,
+    Path(id): Path<String>,
+    Json(req): Json<CreateBranchReq>,
+) -> impl IntoResponse {
     let ctx = match lock_mutex(&st.sims).get(&id).cloned() {
         Some(c) => c,
-        None => return (StatusCode::NOT_FOUND, Json(json!({"error":"simulation not found"}))).into_response(),
+        None => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error":"simulation not found"})),
+            )
+                .into_response()
+        }
     };
     {
         let branches = lock_mutex(&ctx.branches);
         if branches.len() >= 20 {
             return (
                 StatusCode::TOO_MANY_REQUESTS,
-                Json(json!({"error": "branch limit reached for this simulation (max 20 branches)"})),
+                Json(
+                    json!({"error": "branch limit reached for this simulation (max 20 branches)"}),
+                ),
             )
                 .into_response();
         }
     }
-    let bnum = { let mut c = lock_mutex(&ctx.counter); *c += 1; *c };
+    let bnum = {
+        let mut c = lock_mutex(&ctx.counter);
+        *c += 1;
+        *c
+    };
     let branch_id = format!("{id}:b{bnum}");
     let name = match req.name {
         Some(ref n) => {
@@ -493,12 +675,23 @@ async fn create_branch(State(st): State<AppState>, Path(id): Path<String>, Json(
         let m = lock_mutex(&ctx.branches);
         let main = match m.get(&format!("{id}:main")) {
             Some(main_b) => main_b.clone(),
-            None => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "main branch not found"}))).into_response(),
+            None => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"error": "main branch not found"})),
+                )
+                    .into_response()
+            }
         };
         let e = main.engine.lock().unwrap();
         e.state.clone()
     };
-    let mut engine = SimEngine::from_state(ctx.city.tiles.clone(), ctx.population.clone(), main_state, ctx.meta.tick_seconds);
+    let mut engine = SimEngine::from_state(
+        ctx.city.tiles.clone(),
+        ctx.population.clone(),
+        main_state,
+        ctx.meta.tick_seconds,
+    );
 
     // apply the broadcast event (reactions + episodic memory) then run k ticks
     let mut reactions = 0usize;
@@ -525,11 +718,17 @@ async fn create_branch(State(st): State<AppState>, Path(id): Path<String>, Json(
     let main_head = st.store.branch_head(&format!("{id}:main")).ok();
     if let Some(head) = main_head {
         if let Ok(info) = st.store.create_branch(&id, head, &branch_id, &name) {
-            if let Err(e) = st.store.commit(&id, &branch_id, &engine.state, "after-ticks") {
+            if let Err(e) = st
+                .store
+                .commit(&id, &branch_id, &engine.state, "after-ticks")
+            {
                 return (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({"error": format!("failed to commit branch state to store: {e:#}")})),
-                ).into_response();
+                    Json(
+                        json!({"error": format!("failed to commit branch state to store: {e:#}")}),
+                    ),
+                )
+                    .into_response();
             }
             let _ = info;
         }
@@ -547,18 +746,24 @@ async fn create_branch(State(st): State<AppState>, Path(id): Path<String>, Json(
         mode: req.mode.clone().unwrap_or_else(|| "social".into()),
         model: req.model.clone(),
         tx: tx_b,
+        ticker: Arc::new(tokio::sync::Mutex::new(None)),
     });
+    spawn_branch_ticker(bs.clone()).await;
     lock_mutex(&ctx.branches).insert(branch_id.clone(), bs);
 
-    (StatusCode::CREATED, Json(json!({
-        "branch_id": branch_id,
-        "name": name,
-        "ticks_run": ticks,
-        "reactions_emitted": reactions,
-        "event": event_text,
-        "clock": crate::sim::secs_to_iso(clock),
-        "tick": tick,
-    }))).into_response()
+    (
+        StatusCode::CREATED,
+        Json(json!({
+            "branch_id": branch_id,
+            "name": name,
+            "ticks_run": ticks,
+            "reactions_emitted": reactions,
+            "event": event_text,
+            "clock": crate::sim::secs_to_iso(clock),
+            "tick": tick,
+        })),
+    )
+        .into_response()
 }
 
 async fn branch_status(State(st): State<AppState>, Path(bid): Path<String>) -> impl IntoResponse {
@@ -576,33 +781,56 @@ async fn branch_status(State(st): State<AppState>, Path(bid): Path<String>) -> i
                 "tick": e.state.tick,
                 "clock": crate::sim::secs_to_iso(e.state.clock_secs),
                 "agents_alive": alive,
-            })).into_response()
+            }))
+            .into_response()
         }
-        None => (StatusCode::NOT_FOUND, Json(json!({"error":"branch not found"}))).into_response(),
+        None => (
+            StatusCode::NOT_FOUND,
+            Json(json!({"error":"branch not found"})),
+        )
+            .into_response(),
     }
 }
 
 async fn delete_branch(State(st): State<AppState>, Path(bid): Path<String>) -> impl IntoResponse {
     if bid.ends_with(":main") {
-        return (StatusCode::BAD_REQUEST, Json(json!({"error":"cannot delete main"}))).into_response();
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error":"cannot delete main"})),
+        )
+            .into_response();
     }
     if let Some((ctx, _)) = find_branch(&st, &bid) {
         lock_mutex(&ctx.branches).remove(&bid);
         let _ = st.store.delete_branch(&bid);
         return Json(json!({"deleted": bid})).into_response();
     }
-    (StatusCode::NOT_FOUND, Json(json!({"error":"branch not found"}))).into_response()
+    (
+        StatusCode::NOT_FOUND,
+        Json(json!({"error":"branch not found"})),
+    )
+        .into_response()
 }
 
 async fn reset_to_main(State(st): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
     let ctx = match lock_mutex(&st.sims).get(&id).cloned() {
         Some(c) => c,
-        None => return (StatusCode::NOT_FOUND, Json(json!({"error":"simulation not found"}))).into_response(),
+        None => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error":"simulation not found"})),
+            )
+                .into_response()
+        }
     };
     // drop all non-main branches; main is the canonical HEAD
     let removed: Vec<String> = {
         let mut m = lock_mutex(&ctx.branches);
-        let keys: Vec<String> = m.keys().filter(|k| !k.ends_with(":main")).cloned().collect();
+        let keys: Vec<String> = m
+            .keys()
+            .filter(|k| !k.ends_with(":main"))
+            .cloned()
+            .collect();
         for k in &keys {
             m.remove(k);
             let _ = st.store.delete_branch(k);
@@ -613,7 +841,13 @@ async fn reset_to_main(State(st): State<AppState>, Path(id): Path<String>) -> im
         let m = lock_mutex(&ctx.branches);
         let main = match m.get(&format!("{id}:main")) {
             Some(main_b) => main_b.clone(),
-            None => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "main branch not found"}))).into_response(),
+            None => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"error": "main branch not found"})),
+                )
+                    .into_response()
+            }
         };
         let e = main.engine.lock().unwrap();
         e.state.tick
@@ -630,12 +864,24 @@ struct AgentsQuery {
     #[serde(default)]
     offset: usize,
 }
-fn default_limit() -> usize { 500 }
+fn default_limit() -> usize {
+    500
+}
 
-async fn branch_agents(State(st): State<AppState>, Path(bid): Path<String>, Query(q): Query<AgentsQuery>) -> impl IntoResponse {
+async fn branch_agents(
+    State(st): State<AppState>,
+    Path(bid): Path<String>,
+    Query(q): Query<AgentsQuery>,
+) -> impl IntoResponse {
     let (ctx, bs) = match find_branch(&st, &bid) {
         Some(x) => x,
-        None => return (StatusCode::NOT_FOUND, Json(json!({"error":"branch not found"}))).into_response(),
+        None => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error":"branch not found"})),
+            )
+                .into_response()
+        }
     };
     let filt = parse_filter(q.filter.as_deref());
     let e = bs.engine.lock().unwrap();
@@ -681,7 +927,8 @@ async fn branch_agents(State(st): State<AppState>, Path(bid): Path<String>, Quer
         "offset": q.offset,
         "count": out.len(),
         "agents": out,
-    })).into_response()
+    }))
+    .into_response()
 }
 
 #[derive(serde::Deserialize)]
@@ -700,19 +947,37 @@ async fn branch_chatter(
 ) -> impl IntoResponse {
     let (ctx, _bs) = match find_branch(&st, &bid) {
         Some(x) => x,
-        None => return (StatusCode::NOT_FOUND, Json(json!({"error":"branch not found"}))).into_response(),
+        None => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error":"branch not found"})),
+            )
+                .into_response()
+        }
     };
     let ids: Vec<u32> = req.ids.into_iter().take(16).collect();
     let pairs = st.engine.chatter(&ctx.population, &ids).await;
-    let map: serde_json::Map<String, Value> =
-        pairs.into_iter().map(|(id, t)| (id.to_string(), Value::String(t))).collect();
+    let map: serde_json::Map<String, Value> = pairs
+        .into_iter()
+        .map(|(id, t)| (id.to_string(), Value::String(t)))
+        .collect();
     Json(json!({ "chatter": map })).into_response()
 }
 
-async fn branch_poll(State(st): State<AppState>, Path(bid): Path<String>, Json(req): Json<Value>) -> impl IntoResponse {
+async fn branch_poll(
+    State(st): State<AppState>,
+    Path(bid): Path<String>,
+    Json(req): Json<Value>,
+) -> impl IntoResponse {
     let (ctx, bs) = match find_branch(&st, &bid) {
         Some(x) => x,
-        None => return (StatusCode::NOT_FOUND, Json(json!({"error":"branch not found"}))).into_response(),
+        None => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error":"branch not found"})),
+            )
+                .into_response()
+        }
     };
     let mut poll = match poll_from_json(&req) {
         Ok(p) => p,
@@ -723,25 +988,85 @@ async fn branch_poll(State(st): State<AppState>, Path(bid): Path<String>, Json(r
     }
     match st.engine.run_poll(&ctx.population, &poll).await {
         Ok(res) => Json(json!(res)).into_response(),
-        Err(e) => (StatusCode::BAD_GATEWAY, Json(json!({"error": format!("poll failed: {e}")}))).into_response(),
+        Err(e) => (
+            StatusCode::BAD_GATEWAY,
+            Json(json!({"error": format!("poll failed: {e}")})),
+        )
+            .into_response(),
     }
 }
 
-async fn predict_market(State(st): State<AppState>, Path(bid): Path<String>, Json(req): Json<Value>) -> impl IntoResponse {
+async fn predict_market(
+    State(st): State<AppState>,
+    Path(bid): Path<String>,
+    Json(req): Json<Value>,
+) -> impl IntoResponse {
     let (ctx, bs) = match find_branch(&st, &bid) {
         Some(x) => x,
-        None => return (StatusCode::NOT_FOUND, Json(json!({"error":"branch not found"}))).into_response(),
+        None => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error":"branch not found"})),
+            )
+                .into_response()
+        }
     };
-    let question = req.get("question").and_then(|x| x.as_str()).unwrap_or("").to_string();
-    if question.is_empty() {
-        return (StatusCode::BAD_REQUEST, Json(json!({"error":"question required"}))).into_response();
+    let question = match req
+        .get("question")
+        .and_then(|x| x.as_str())
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+    {
+        Some(q) => q.to_string(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error":"question required"})),
+            )
+                .into_response()
+        }
+    };
+    let as_of = match req
+        .get("as_of_date")
+        .and_then(|x| x.as_str())
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+    {
+        Some(d) => d.to_string(),
+        None => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({"error":"as_of_date required"})),
+            )
+                .into_response()
+        }
+    };
+    if chrono::NaiveDate::parse_from_str(&as_of, "%Y-%m-%d").is_err()
+        && chrono::DateTime::parse_from_rfc3339(&as_of).is_err()
+    {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "invalid as_of_date: must be YYYY-MM-DD or RFC3339"})),
+        )
+            .into_response();
     }
-    let as_of = req.get("as_of_date").and_then(|x| x.as_str()).unwrap_or("2024-01-01").to_string();
-    let bucket = req.get("bucket").and_then(|x| x.as_str()).unwrap_or("city_opinion_informative").to_string();
-    let model = req.get("model").and_then(|x| x.as_str()).map(|s| s.to_string()).or_else(|| bs.model.clone());
+    let bucket = req
+        .get("bucket")
+        .and_then(|x| x.as_str())
+        .unwrap_or("city_opinion_informative")
+        .to_string();
+    let model = req
+        .get("model")
+        .and_then(|x| x.as_str())
+        .map(|s| s.to_string())
+        .or_else(|| bs.model.clone());
     let poll = Poll {
         question: question.clone(),
-        description: req.get("description").and_then(|x| x.as_str()).unwrap_or("Prediction-market question mapped to a pollable belief.").to_string(),
+        description: req
+            .get("description")
+            .and_then(|x| x.as_str())
+            .unwrap_or("Prediction-market question mapped to a pollable belief.")
+            .to_string(),
         framing: Framing::Belief,
         as_of_date: as_of.clone(),
         model,
@@ -772,7 +1097,11 @@ async fn branch_stream(State(st): State<AppState>, Path(bid): Path<String>) -> i
             let s = async_stream::stream! {
                 yield Ok::<_, Infallible>(SseEvent::default().event("error").data("{\"error\":\"branch not found\"}"));
             };
-            return Sse::new(Box::pin(s) as std::pin::Pin<Box<dyn futures::Stream<Item = Result<SseEvent, Infallible>> + Send>>).into_response();
+            return Sse::new(Box::pin(s)
+                as std::pin::Pin<
+                    Box<dyn futures::Stream<Item = Result<SseEvent, Infallible>> + Send>,
+                >)
+            .into_response();
         }
     };
     let stream = async_stream::stream! {
@@ -789,20 +1118,20 @@ async fn branch_stream(State(st): State<AppState>, Path(bid): Path<String>) -> i
         };
         yield Ok::<_, Infallible>(SseEvent::default().event("snapshot").data(snap.to_string()));
 
-        // live ticks (bounded so a contract test terminates)
-        for _ in 0..600u32 {
-            let events: Vec<SimEvent> = { bs.engine.lock().unwrap().tick() };
-            for ev in events {
-                let data = serde_json::to_string(&ev).unwrap_or_default();
-                let name = sse_event_name(&ev);
-                yield Ok::<_, Infallible>(SseEvent::default().event(name).data(data));
-            }
-            tokio::time::sleep(Duration::from_millis(400)).await;
+        // subscribe to branch events
+        let mut rx = bs.tx.subscribe();
+        while let Ok(ev) = rx.recv().await {
+            let data = serde_json::to_string(&ev).unwrap_or_default();
+            let name = sse_event_name(&ev);
+            yield Ok::<_, Infallible>(SseEvent::default().event(name).data(data));
         }
     };
-    Sse::new(Box::pin(stream) as std::pin::Pin<Box<dyn futures::Stream<Item = Result<SseEvent, Infallible>> + Send>>)
-        .keep_alive(axum::response::sse::KeepAlive::default())
-        .into_response()
+    Sse::new(Box::pin(stream)
+        as std::pin::Pin<
+            Box<dyn futures::Stream<Item = Result<SseEvent, Infallible>> + Send>,
+        >)
+    .keep_alive(axum::response::sse::KeepAlive::default())
+    .into_response()
 }
 
 fn sse_event_name(ev: &SimEvent) -> &'static str {
@@ -835,27 +1164,52 @@ fn find_branch(st: &AppState, bid: &str) -> Option<(Arc<SimContext>, Arc<BranchS
 }
 
 fn poll_from_json(req: &Value) -> Result<Poll, String> {
-    let question = req.get("question").and_then(|x| x.as_str()).ok_or("question required")?.to_string();
-    let description = req.get("description").and_then(|x| x.as_str()).unwrap_or("").to_string();
-    let as_of_date = req.get("as_of_date").and_then(|x| x.as_str()).unwrap_or("2024-01-01").to_string();
+    let question = req
+        .get("question")
+        .and_then(|x| x.as_str())
+        .ok_or("question required")?
+        .to_string();
+    let description = req
+        .get("description")
+        .and_then(|x| x.as_str())
+        .unwrap_or("")
+        .to_string();
+    let as_of_date = req
+        .get("as_of_date")
+        .and_then(|x| x.as_str())
+        .unwrap_or("2024-01-01")
+        .to_string();
     let framing = match req.get("framing").and_then(|x| x.as_str()) {
         Some("belief") => Framing::Belief,
         Some("options") => Framing::Options,
         _ => Framing::Vote,
     };
-    let event = req.get("event").and_then(|e| e.as_str()).map(|t| Event { text: t.to_string(), as_of_date: as_of_date.clone() });
+    let event = req.get("event").and_then(|e| e.as_str()).map(|t| Event {
+        text: t.to_string(),
+        as_of_date: as_of_date.clone(),
+    });
     let options = req
         .get("options")
         .and_then(|x| x.as_array())
-        .map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+        .map(|a| {
+            a.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect()
+        })
         .unwrap_or_default();
     Ok(Poll {
         question,
         description,
         framing,
         as_of_date,
-        model: req.get("model").and_then(|x| x.as_str()).map(|s| s.to_string()),
-        population: req.get("population").and_then(|x| x.as_str()).map(|s| s.to_string()),
+        model: req
+            .get("model")
+            .and_then(|x| x.as_str())
+            .map(|s| s.to_string()),
+        population: req
+            .get("population")
+            .and_then(|x| x.as_str())
+            .map(|s| s.to_string()),
         event,
         options,
     })
@@ -901,8 +1255,18 @@ fn marginals_from_records(recs: &[PumsRecord]) -> HashMap<String, HashMap<String
         add_marginal(&mut m, "age_band", r.age_band(), r.pwgtp);
         add_marginal(&mut m, "race_eth", r.race_eth(), r.pwgtp);
         add_marginal(&mut m, "educ", r.educ(), r.pwgtp);
-        add_marginal(&mut m, "sex", if r.sex == 1 { "male" } else { "female" }, r.pwgtp);
-        add_marginal(&mut m, "citizen", if r.is_citizen() { "yes" } else { "no" }, r.pwgtp);
+        add_marginal(
+            &mut m,
+            "sex",
+            if r.sex == 1 { "male" } else { "female" },
+            r.pwgtp,
+        );
+        add_marginal(
+            &mut m,
+            "citizen",
+            if r.is_citizen() { "yes" } else { "no" },
+            r.pwgtp,
+        );
     }
     normalize(&mut m);
     m
@@ -914,14 +1278,27 @@ fn marginals_from_agents(agents: &[Agent]) -> HashMap<String, HashMap<String, f6
         add_marginal(&mut m, "age_band", a.rec.age_band(), w);
         add_marginal(&mut m, "race_eth", a.rec.race_eth(), w);
         add_marginal(&mut m, "educ", a.rec.educ(), w);
-        add_marginal(&mut m, "sex", if a.rec.sex == 1 { "male" } else { "female" }, w);
-        add_marginal(&mut m, "citizen", if a.rec.is_citizen() { "yes" } else { "no" }, w);
+        add_marginal(
+            &mut m,
+            "sex",
+            if a.rec.sex == 1 { "male" } else { "female" },
+            w,
+        );
+        add_marginal(
+            &mut m,
+            "citizen",
+            if a.rec.is_citizen() { "yes" } else { "no" },
+            w,
+        );
     }
     normalize(&mut m);
     m
 }
 fn add_marginal(m: &mut HashMap<String, HashMap<String, f64>>, var: &str, level: &str, w: f64) {
-    *m.entry(var.to_string()).or_default().entry(level.to_string()).or_insert(0.0) += w;
+    *m.entry(var.to_string())
+        .or_default()
+        .entry(level.to_string())
+        .or_insert(0.0) += w;
 }
 fn normalize(m: &mut HashMap<String, HashMap<String, f64>>) {
     for (_, dist) in m.iter_mut() {
@@ -950,7 +1327,10 @@ struct StaticLayer {
 }
 impl StaticLayer {
     fn from_pop(p: &Population) -> Self {
-        StaticLayer { n: p.agents.len(), seed: p.seed }
+        StaticLayer {
+            n: p.agents.len(),
+            seed: p.seed,
+        }
     }
 }
 
@@ -978,27 +1358,46 @@ async fn parse_question_handler(
     Path(city): Path<String>,
     Json(req): Json<Value>,
 ) -> impl IntoResponse {
-    let raw = req.get("question").and_then(|x| x.as_str()).unwrap_or("").trim().to_string();
+    let raw = req
+        .get("question")
+        .and_then(|x| x.as_str())
+        .unwrap_or("")
+        .trim()
+        .to_string();
     if raw.is_empty() {
-        return (StatusCode::BAD_REQUEST, Json(json!({"error": "question required"}))).into_response();
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "question required"})),
+        )
+            .into_response();
     }
     let name = st
         .cities
         .get(&city)
         .map(|r| r.profile.prompt_name.clone())
         .unwrap_or_else(|| "this city".to_string());
-    let model = Model::parse(req.get("model").and_then(|x| x.as_str()).unwrap_or("claude-sonnet-4-6"));
+    let model = Model::parse(
+        req.get("model")
+            .and_then(|x| x.as_str())
+            .unwrap_or("claude-sonnet-4-6"),
+    );
     let parsed = crate::parse::parse_question(&st.client, &name, &raw, model).await;
     Json(json!(parsed)).into_response()
 }
 
 /// Recent news for a city (the frontend news bubble) + the served knowledge date.
-async fn city_news(State(_st): State<AppState>, Path(city): Path<String>) -> impl IntoResponse {
+async fn city_news(State(st): State<AppState>, Path(city): Path<String>) -> impl IntoResponse {
+    if !st.cities.contains_key(&city) {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(json!({"error": format!("unknown city: {city}")})),
+        )
+            .into_response();
+    }
     let news = crate::news::load(&city);
-    Json(json!({ "city": city, "date": news.date, "articles": news.articles }))
+    Json(json!({ "city": city, "date": news.date, "articles": news.articles })).into_response()
 }
 
-/// List loaded cities (for the frontend city switcher).
 async fn list_cities(State(st): State<AppState>) -> impl IntoResponse {
     let mut slugs: Vec<&String> = st.cities.keys().collect();
     slugs.sort();
@@ -1029,11 +1428,19 @@ fn load_city_runtime(slug: &str) -> anyhow::Result<CityRuntime> {
     if records.is_empty() {
         anyhow::bail!("city {slug} loaded 0 PUMS records");
     }
-    Ok(CityRuntime { profile: Arc::new(profile), tiles, records })
+    Ok(CityRuntime {
+        profile: Arc::new(profile),
+        tiles,
+        records,
+    })
 }
 
 /// Build the full AppState from environment (loads every available city + opens caches).
-pub fn build_state(_tiles_path: &str, cache_path: Option<&str>, state_db: &str) -> anyhow::Result<AppState> {
+pub fn build_state(
+    _tiles_path: &str,
+    cache_path: Option<&str>,
+    state_db: &str,
+) -> anyhow::Result<AppState> {
     let cache = match cache_path {
         Some(p) => Some(Arc::new(Cache::open(p)?)),
         None => None,
@@ -1108,4 +1515,3 @@ pub fn build_state(_tiles_path: &str, cache_path: Option<&str>, state_db: &str) 
 use crate::state as _state;
 #[allow(dead_code)]
 fn _touch(_: AgentState, _: SimState) {}
-

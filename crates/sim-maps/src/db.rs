@@ -12,7 +12,6 @@
 /// BLOB byte layout (both layers):
 ///   render    — little-endian u32 array, row-major, w*h elements, then zstd-compressed
 ///   collision — little-endian u8 array,  row-major, w*h elements, then zstd-compressed
-
 use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
 
@@ -70,20 +69,30 @@ impl DbWriter {
 
         let handle = thread::spawn(move || writer_loop(conn, rx));
 
-        Ok(Self { tx, handle: Some(handle) })
+        Ok(Self {
+            tx,
+            handle: Some(handle),
+        })
     }
 
     pub fn send_chunk(&self, cmd: ChunkWrite) -> Result<()> {
-        self.tx.send(WriteCmd::Chunk(cmd)).context("send chunk to writer")
+        self.tx
+            .send(WriteCmd::Chunk(cmd))
+            .context("send chunk to writer")
     }
 
     pub fn send_building(&self, b: BuildingWrite) -> Result<()> {
-        self.tx.send(WriteCmd::Building(b)).context("send building to writer")
+        self.tx
+            .send(WriteCmd::Building(b))
+            .context("send building to writer")
     }
 
     pub fn send_meta(&self, key: &str, value: &str) -> Result<()> {
         self.tx
-            .send(WriteCmd::Meta { key: key.to_owned(), value: value.to_owned() })
+            .send(WriteCmd::Meta {
+                key: key.to_owned(),
+                value: value.to_owned(),
+            })
             .context("send meta to writer")
     }
 
@@ -94,7 +103,8 @@ impl DbWriter {
     pub fn shutdown(mut self) -> Result<()> {
         self.tx.send(WriteCmd::Shutdown).context("send shutdown")?;
         if let Some(h) = self.handle.take() {
-            h.join().map_err(|_| anyhow::anyhow!("writer thread panicked"))??;
+            h.join()
+                .map_err(|_| anyhow::anyhow!("writer thread panicked"))??;
         }
         Ok(())
     }

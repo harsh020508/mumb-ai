@@ -60,33 +60,33 @@ pub fn assign(rec: &PumsRecord, rng: &mut impl Rng, weights: &[f64; 9], is_sf: b
     if is_sf {
         // race/ethnicity tilts
         match rec.race_eth() {
-        "hispanic" => {
-            w[0] *= 2.6; // Catholic
-            w[1] *= 1.2;
-            w[3] *= 0.6;
+            "hispanic" => {
+                w[0] *= 2.6; // Catholic
+                w[1] *= 1.2;
+                w[3] *= 0.6;
+            }
+            "black" => {
+                w[1] *= 2.8; // (historically Black) Protestant
+                w[3] *= 0.7;
+            }
+            "asian" => {
+                w[6] *= 2.5; // Buddhist
+                w[7] *= 1.2;
+                w[0] *= 1.1;
+                w[3] *= 1.0;
+            }
+            "white" => {
+                w[3] *= 1.15; // more unaffiliated
+                w[4] *= 1.6; // Jewish skew among white SF
+            }
+            _ => {}
         }
-        "black" => {
-            w[1] *= 2.8; // (historically Black) Protestant
+        if rec.foreign_born() {
+            w[5] *= 3.0; // Muslim
+            w[7] *= 2.0; // Hindu
+            w[0] *= 1.3; // Catholic (immigrant)
             w[3] *= 0.7;
         }
-        "asian" => {
-            w[6] *= 2.5; // Buddhist
-            w[7] *= 1.2;
-            w[0] *= 1.1;
-            w[3] *= 1.0;
-        }
-        "white" => {
-            w[3] *= 1.15; // more unaffiliated
-            w[4] *= 1.6; // Jewish skew among white SF
-        }
-        _ => {}
-    }
-    if rec.foreign_born() {
-        w[5] *= 3.0; // Muslim
-        w[7] *= 2.0; // Hindu
-        w[0] *= 1.3; // Catholic (immigrant)
-        w[3] *= 0.7;
-    }
     }
 
     // age tilt: younger -> more unaffiliated; older -> more affiliated
@@ -140,9 +140,24 @@ mod tests {
 
     fn rec(race_rac1p: u8, hisp: u16, age: u8) -> PumsRecord {
         PumsRecord {
-            serialno: "x".into(), sporder: 1, pwgtp: 10.0, age, sex: 1, rac1p: race_rac1p,
-            hisp, schl: 21, pincp: 50000.0, povpip: 350.0, occp: 0, cow: 1, esr: 1, cit: 1,
-            mar: 5, nativity: 1, puma: 7510, adjinc: 1.0,
+            serialno: "x".into(),
+            sporder: 1,
+            pwgtp: 10.0,
+            age,
+            sex: 1,
+            rac1p: race_rac1p,
+            hisp,
+            schl: 21,
+            pincp: 50000.0,
+            povpip: 350.0,
+            occp: 0,
+            cow: 1,
+            esr: 1,
+            cit: 1,
+            mar: 5,
+            nativity: 1,
+            puma: 7510,
+            adjinc: 1.0,
         }
     }
 
@@ -160,8 +175,18 @@ mod tests {
         let mut cath_h = 0;
         let mut cath_w = 0;
         for s in 0..2000u64 {
-            let h = assign(&rec(8, 2, 40), &mut ChaCha8Rng::seed_from_u64(s), &SFW, true);
-            let w = assign(&rec(1, 1, 40), &mut ChaCha8Rng::seed_from_u64(s), &SFW, true);
+            let h = assign(
+                &rec(8, 2, 40),
+                &mut ChaCha8Rng::seed_from_u64(s),
+                &SFW,
+                true,
+            );
+            let w = assign(
+                &rec(1, 1, 40),
+                &mut ChaCha8Rng::seed_from_u64(s),
+                &SFW,
+                true,
+            );
             if h == Religion::Catholic {
                 cath_h += 1;
             }
@@ -181,6 +206,10 @@ mod tests {
                 unaff += 1;
             }
         }
-        assert!(unaff as f64 / 3000.0 > 0.35, "unaff frac {}", unaff as f64 / 3000.0);
+        assert!(
+            unaff as f64 / 3000.0 > 0.35,
+            "unaff frac {}",
+            unaff as f64 / 3000.0
+        );
     }
 }

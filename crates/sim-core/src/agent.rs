@@ -48,10 +48,30 @@ impl ValueVector {
     }
     /// A short natural-language summary of the leanings, for prompts.
     pub fn describe(&self) -> String {
-        let econ = axis_word(self.economic, "economically progressive/redistributionist", "economically moderate", "economically conservative/pro-market");
-        let soc = axis_word(self.social, "socially very progressive", "socially moderate", "socially conservative");
-        let trust = axis_word(self.trust, "distrustful of government and institutions", "ambivalent about institutions", "trusting of institutions");
-        let chg = axis_word(self.change, "prefers stability and incremental change", "open to some change", "wants big structural change");
+        let econ = axis_word(
+            self.economic,
+            "economically progressive/redistributionist",
+            "economically moderate",
+            "economically conservative/pro-market",
+        );
+        let soc = axis_word(
+            self.social,
+            "socially very progressive",
+            "socially moderate",
+            "socially conservative",
+        );
+        let trust = axis_word(
+            self.trust,
+            "distrustful of government and institutions",
+            "ambivalent about institutions",
+            "trusting of institutions",
+        );
+        let chg = axis_word(
+            self.change,
+            "prefers stability and incremental change",
+            "open to some change",
+            "wants big structural change",
+        );
         let mut top = [
             ("housing/development", self.s_housing),
             ("public safety/crime", self.s_crime),
@@ -114,7 +134,11 @@ impl Agent {
             self.rec.educ(),
             self.income_quintile(cutoffs),
             if self.homeowner { "own" } else { "rent" },
-            if self.rec.is_citizen() { "cit" } else { "noncit" },
+            if self.rec.is_citizen() {
+                "cit"
+            } else {
+                "noncit"
+            },
         )
     }
 }

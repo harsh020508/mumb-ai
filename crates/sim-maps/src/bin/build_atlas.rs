@@ -17,10 +17,9 @@
 /// instead of a flat checkerboard square. See CREDITS.md for attribution.
 ///
 /// Usage: cargo run --release --bin build_atlas [-- [MX_32x32_DIR]]
-
 use anyhow::{Context, Result};
-use sim_maps::autotile::{suppress_corners, BLOB_VARIANTS};
 use image::{DynamicImage, GenericImageView, Rgba, RgbaImage};
+use sim_maps::autotile::{suppress_corners, BLOB_VARIANTS};
 use std::path::{Path, PathBuf};
 
 const TS: u32 = 32;
@@ -53,35 +52,140 @@ const MB_SINGLES: &str = "ME_Theme_Sorter_32x32/5_Floor_Modular_Building_Singles
 fn classes() -> Vec<ClassDef> {
     vec![
         // 0 Grass — clean solid lawn tile.
-        ClassDef { label: "Grass", rel: ts("ME_Singles_Terrains_and_Fences_32x32_Grass_1_22.png"), x: 0, y: 0, rim: Rim::DarkLand, tint: 1.0 },
+        ClassDef {
+            label: "Grass",
+            rel: ts("ME_Singles_Terrains_and_Fences_32x32_Grass_1_22.png"),
+            x: 0,
+            y: 0,
+            rim: Rim::DarkLand,
+            tint: 1.0,
+        },
         // 1 ParkGrass — same MX grass, darkened to a richer park green (only one MX grass tone exists).
-        ClassDef { label: "ParkGrass", rel: ts("ME_Singles_Terrains_and_Fences_32x32_Grass_1_22.png"), x: 0, y: 0, rim: Rim::DarkLand, tint: 0.86 },
+        ClassDef {
+            label: "ParkGrass",
+            rel: ts("ME_Singles_Terrains_and_Fences_32x32_Grass_1_22.png"),
+            x: 0,
+            y: 0,
+            rim: Rim::DarkLand,
+            tint: 0.86,
+        },
         // 2 Sand — beach sheet wavy sand.
-        ClassDef { label: "Sand", rel: "ME_Theme_Sorter_32x32/21_Beach_32x32.png", x: 288, y: 224, rim: Rim::DarkLand, tint: 1.0 },
+        ClassDef {
+            label: "Sand",
+            rel: "ME_Theme_Sorter_32x32/21_Beach_32x32.png",
+            x: 288,
+            y: 224,
+            rim: Rim::DarkLand,
+            tint: 1.0,
+        },
         // 3 Path — terrains sheet clay-orange dirt.
-        ClassDef { label: "Path", rel: "ME_Theme_Sorter_32x32/1_Terrains_and_Fences_32x32.png", x: 928, y: 320, rim: Rim::DarkLand, tint: 1.0 },
+        ClassDef {
+            label: "Path",
+            rel: "ME_Theme_Sorter_32x32/1_Terrains_and_Fences_32x32.png",
+            x: 928,
+            y: 320,
+            rim: Rim::DarkLand,
+            tint: 1.0,
+        },
         // 4 Sidewalk — warm-gray slab.
-        ClassDef { label: "Sidewalk", rel: cs("ME_Singles_City_Terrains_32x32_Sidewalk_1_25.png"), x: 0, y: 0, rim: Rim::DarkLand, tint: 1.0 },
+        ClassDef {
+            label: "Sidewalk",
+            rel: cs("ME_Singles_City_Terrains_32x32_Sidewalk_1_25.png"),
+            x: 0,
+            y: 0,
+            rim: Rim::DarkLand,
+            tint: 1.0,
+        },
         // 5 Road — plain asphalt (no lane markings).
-        ClassDef { label: "Road", rel: cs("ME_Singles_City_Terrains_32x32_Asphalt_1_Variation_17.png"), x: 0, y: 0, rim: Rim::DarkLand, tint: 1.0 },
+        ClassDef {
+            label: "Road",
+            rel: cs("ME_Singles_City_Terrains_32x32_Asphalt_1_Variation_17.png"),
+            x: 0,
+            y: 0,
+            rim: Rim::DarkLand,
+            tint: 1.0,
+        },
         // 6 Stairs — no MX terrain stair; nearest is cobblestone paving (distinct stone).
-        ClassDef { label: "Stairs", rel: "ME_Theme_Sorter_32x32/1_Terrains_and_Fences_32x32.png", x: 800, y: 320, rim: Rim::DarkLand, tint: 0.9 },
+        ClassDef {
+            label: "Stairs",
+            rel: "ME_Theme_Sorter_32x32/1_Terrains_and_Fences_32x32.png",
+            x: 800,
+            y: 320,
+            rim: Rim::DarkLand,
+            tint: 0.9,
+        },
         // 7 CliffFace — rocky/dirt mound face.
-        ClassDef { label: "CliffFace", rel: ts("ME_Singles_Terrains_and_Fences_32x32_Mound_2_6.png"), x: 0, y: 0, rim: Rim::DarkLand, tint: 1.0 },
+        ClassDef {
+            label: "CliffFace",
+            rel: ts("ME_Singles_Terrains_and_Fences_32x32_Mound_2_6.png"),
+            x: 0,
+            y: 0,
+            rim: Rim::DarkLand,
+            tint: 1.0,
+        },
         // 8 BuildingFloor (Low) — terracotta pitched roof (placeholder; Phase 2 redraws per-building).
-        ClassDef { label: "BuildingFloor", rel: mb("ME_Singles_Floor_Modular_Building_32x32_Roof_2.png"), x: 96, y: 128, rim: Rim::DarkLand, tint: 1.0 },
+        ClassDef {
+            label: "BuildingFloor",
+            rel: mb("ME_Singles_Floor_Modular_Building_32x32_Roof_2.png"),
+            x: 96,
+            y: 128,
+            rim: Rim::DarkLand,
+            tint: 1.0,
+        },
         // 9 BuildingWall — brick wall body.
-        ClassDef { label: "BuildingWall", rel: mb("ME_Singles_Floor_Modular_Building_32x32_Middle_Floor_1.png"), x: 32, y: 96, rim: Rim::DarkLand, tint: 1.0 },
+        ClassDef {
+            label: "BuildingWall",
+            rel: mb("ME_Singles_Floor_Modular_Building_32x32_Middle_Floor_1.png"),
+            x: 32,
+            y: 96,
+            rim: Rim::DarkLand,
+            tint: 1.0,
+        },
         // 10 Water — deep blue bay water.
-        ClassDef { label: "Water", rel: ts("ME_Singles_Terrains_and_Fences_32x32_Deep_Water_1_11.png"), x: 0, y: 0, rim: Rim::LightWater, tint: 1.0 },
+        ClassDef {
+            label: "Water",
+            rel: ts("ME_Singles_Terrains_and_Fences_32x32_Deep_Water_1_11.png"),
+            x: 0,
+            y: 0,
+            rim: Rim::LightWater,
+            tint: 1.0,
+        },
         // 11 Plaza — gray cobblestone paving.
-        ClassDef { label: "Plaza", rel: "ME_Theme_Sorter_32x32/1_Terrains_and_Fences_32x32.png", x: 800, y: 288, rim: Rim::DarkLand, tint: 1.0 },
+        ClassDef {
+            label: "Plaza",
+            rel: "ME_Theme_Sorter_32x32/1_Terrains_and_Fences_32x32.png",
+            x: 800,
+            y: 288,
+            rim: Rim::DarkLand,
+            tint: 1.0,
+        },
         // 12 Shoreline — sand band meeting water (light foam rim).
-        ClassDef { label: "Shoreline", rel: "ME_Theme_Sorter_32x32/21_Beach_32x32.png", x: 288, y: 224, rim: Rim::LightWater, tint: 1.0 },
+        ClassDef {
+            label: "Shoreline",
+            rel: "ME_Theme_Sorter_32x32/21_Beach_32x32.png",
+            x: 288,
+            y: 224,
+            rim: Rim::LightWater,
+            tint: 1.0,
+        },
         // 13 BuildingMid — flat tan/gray roof (placeholder).
-        ClassDef { label: "BuildingMid", rel: mb("ME_Singles_Floor_Modular_Building_32x32_Roof_6.png"), x: 96, y: 128, rim: Rim::DarkLand, tint: 1.0 },
+        ClassDef {
+            label: "BuildingMid",
+            rel: mb("ME_Singles_Floor_Modular_Building_32x32_Roof_6.png"),
+            x: 96,
+            y: 128,
+            rim: Rim::DarkLand,
+            tint: 1.0,
+        },
         // 14 BuildingTall — flat concrete roof (placeholder).
-        ClassDef { label: "BuildingTall", rel: mb("ME_Singles_Floor_Modular_Building_32x32_Roof_10.png"), x: 96, y: 150, rim: Rim::DarkLand, tint: 1.0 },
+        ClassDef {
+            label: "BuildingTall",
+            rel: mb("ME_Singles_Floor_Modular_Building_32x32_Roof_10.png"),
+            x: 96,
+            y: 150,
+            rim: Rim::DarkLand,
+            tint: 1.0,
+        },
     ]
 }
 
@@ -103,7 +207,11 @@ fn main() -> Result<()> {
     } else {
         home.join("Downloads/modernexteriors-win/Modern_Exteriors_32x32")
     };
-    anyhow::ensure!(mx_dir.exists(), "MX 32x32 dir not found: {}", mx_dir.display());
+    anyhow::ensure!(
+        mx_dir.exists(),
+        "MX 32x32 dir not found: {}",
+        mx_dir.display()
+    );
 
     let palette = load_palette(&mx_dir.join("../Palette.png"))
         .or_else(|_| load_palette(&home.join("Downloads/modernexteriors-win/Palette.png")))
@@ -150,7 +258,12 @@ fn main() -> Result<()> {
 }
 
 /// Bake the organic rim for one blob variant into a copy of the base tile.
-fn generate_variant(base: &RgbaImage, mask: u8, rim_color: Rgba<u8>, palette: &[[u8; 3]]) -> RgbaImage {
+fn generate_variant(
+    base: &RgbaImage,
+    mask: u8,
+    rim_color: Rgba<u8>,
+    palette: &[[u8; 3]],
+) -> RgbaImage {
     // bit set = neighbour SAME class; "open" = neighbour DIFFERENT (a class boundary).
     let open_n = mask & 0x01 == 0;
     let open_e = mask & 0x04 == 0;
@@ -227,7 +340,11 @@ fn generate_variant(base: &RgbaImage, mask: u8, rim_color: Rgba<u8>, palette: &[
                 lerp(p[2], rim_color[2], t) as f32,
             ];
             let snapped = nearest_palette(mixed, palette);
-            out.put_pixel(x as u32, y as u32, Rgba([snapped[0], snapped[1], snapped[2], p[3]]));
+            out.put_pixel(
+                x as u32,
+                y as u32,
+                Rgba([snapped[0], snapped[1], snapped[2], p[3]]),
+            );
         }
     }
     out
@@ -270,7 +387,9 @@ fn corner_falloff(x: i32, y: i32, cx: i32, cy: i32, rim_w: i32) -> f32 {
 }
 
 fn lerp(a: u8, b: u8, t: f32) -> u8 {
-    (a as f32 * (1.0 - t) + b as f32 * t).round().clamp(0.0, 255.0) as u8
+    (a as f32 * (1.0 - t) + b as f32 * t)
+        .round()
+        .clamp(0.0, 255.0) as u8
 }
 
 /// Derive the rim colour from the base tile's average colour: darker for land,
@@ -305,7 +424,11 @@ fn tint_tile(tile: &mut RgbaImage, factor: f32, palette: &[[u8; 3]]) {
         if p[3] == 0 {
             continue;
         }
-        let mixed = [p[0] as f32 * factor, p[1] as f32 * factor, p[2] as f32 * factor];
+        let mixed = [
+            p[0] as f32 * factor,
+            p[1] as f32 * factor,
+            p[2] as f32 * factor,
+        ];
         let snapped = nearest_palette(mixed, palette);
         *p = Rgba([snapped[0], snapped[1], snapped[2], p[3]]);
     }

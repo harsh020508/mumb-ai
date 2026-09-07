@@ -4,8 +4,6 @@
 use simfrancisco::api;
 use std::net::SocketAddr;
 
-
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     simfrancisco::load_dotenv(".env");
@@ -16,7 +14,10 @@ async fn main() -> anyhow::Result<()> {
         )
         .init();
 
-    let port: u16 = std::env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(8080);
+    let port: u16 = std::env::var("PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(8080);
     let tiles_path = std::env::var("TILES_DB").unwrap_or_else(|_| "tiles.db".to_string());
     let cache_path = std::env::var("CACHE_DB").unwrap_or_else(|_| "cache.db".to_string());
     let state_db = std::env::var("STATE_DB").unwrap_or_else(|_| "state.db".to_string());
@@ -44,7 +45,10 @@ async fn main() -> anyhow::Result<()> {
             .values()
             .map(|rt| (rt.profile.slug.clone(), rt.profile.prompt_name.clone()))
             .collect();
-        tracing::info!("news refresh enabled: every {hours}h across {} cities", cities.len());
+        tracing::info!(
+            "news refresh enabled: every {hours}h across {} cities",
+            cities.len()
+        );
         tokio::spawn(async move {
             loop {
                 let date = simfrancisco::news::today();

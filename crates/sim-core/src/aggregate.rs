@@ -88,7 +88,12 @@ pub fn design_effect(weights: &[f64]) -> f64 {
 /// Weighted bootstrap CI for the yes-share. Resamples agents uniformly with
 /// replacement `b` times, recomputing the weighted share each time, then takes
 /// percentiles. Deterministic given `seed`.
-pub fn weighted_bootstrap_ci(answers: &[(f64, f64)], b: usize, alpha: f64, seed: u64) -> (f64, f64) {
+pub fn weighted_bootstrap_ci(
+    answers: &[(f64, f64)],
+    b: usize,
+    alpha: f64,
+    seed: u64,
+) -> (f64, f64) {
     if answers.is_empty() {
         return (0.0, 0.0);
     }
@@ -110,10 +115,7 @@ pub fn weighted_bootstrap_ci(answers: &[(f64, f64)], b: usize, alpha: f64, seed:
     shares.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let lo_idx = ((alpha / 2.0) * b as f64).floor() as usize;
     let hi_idx = (((1.0 - alpha / 2.0) * b as f64).ceil() as usize).saturating_sub(1);
-    (
-        shares[lo_idx.min(b - 1)],
-        shares[hi_idx.min(b - 1)],
-    )
+    (shares[lo_idx.min(b - 1)], shares[hi_idx.min(b - 1)])
 }
 
 fn next_u64(rng: &mut ChaCha8Rng) -> u64 {
@@ -138,8 +140,7 @@ pub fn breakdown<K: Eq + std::hash::Hash + Clone>(
         .into_iter()
         .map(|(k, (num, den, n))| (k, if den > 0.0 { num / den } else { 0.0 }, den, n))
         .collect();
-    out
-        .sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+    out.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
     out
 }
 
@@ -190,7 +191,10 @@ mod tests {
             WeightedAnswer::hard(2.0, 0, 3),
             WeightedAnswer::hard(1.0, 1, 3),
             WeightedAnswer::hard(1.0, 2, 3),
-            WeightedAnswer { weight: 4.0, probs: vec![0.5, 0.25, 0.25] },
+            WeightedAnswer {
+                weight: 4.0,
+                probs: vec![0.5, 0.25, 0.25],
+            },
         ];
         let d = weighted_distribution(&answers, 3);
         let sum: f64 = d.iter().sum();

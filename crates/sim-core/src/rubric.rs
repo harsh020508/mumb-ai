@@ -136,8 +136,17 @@ pub fn market_entry_score(p_hat: f64, outcome: f64, max_brier: f64) -> (f64, f64
 }
 
 /// Counterfactual: direction correct? + magnitude plausibility if a real delta exists.
-pub fn cf_entry_score(delta: f64, expected_up: bool, real_delta: Option<f64>, mag_tol: f64) -> (f64, bool) {
-    let dir_ok = if expected_up { delta > 0.005 } else { delta < -0.005 };
+pub fn cf_entry_score(
+    delta: f64,
+    expected_up: bool,
+    real_delta: Option<f64>,
+    mag_tol: f64,
+) -> (f64, bool) {
+    let dir_ok = if expected_up {
+        delta > 0.005
+    } else {
+        delta < -0.005
+    };
     let mut score = if dir_ok { 1.0 } else { 0.0 };
     if dir_ok {
         if let Some(rd) = real_delta {
@@ -215,10 +224,34 @@ mod tests {
     #[test]
     fn weighting_headline_respects_weights_and_zeros() {
         let cats = vec![
-            CategoryScore { name: "elections".into(), score: 0.6, weight: 1.0, n: 5, passed: true },
-            CategoryScore { name: "markets".into(), score: 0.8, weight: 1.5, n: 3, passed: true },
-            CategoryScore { name: "cf".into(), score: 1.0, weight: 1.0, n: 2, passed: true },
-            CategoryScore { name: "general".into(), score: 0.0, weight: 0.0, n: 1, passed: true },
+            CategoryScore {
+                name: "elections".into(),
+                score: 0.6,
+                weight: 1.0,
+                n: 5,
+                passed: true,
+            },
+            CategoryScore {
+                name: "markets".into(),
+                score: 0.8,
+                weight: 1.5,
+                n: 3,
+                passed: true,
+            },
+            CategoryScore {
+                name: "cf".into(),
+                score: 1.0,
+                weight: 1.0,
+                n: 2,
+                passed: true,
+            },
+            CategoryScore {
+                name: "general".into(),
+                score: 0.0,
+                weight: 0.0,
+                n: 1,
+                passed: true,
+            },
         ];
         let h = weighted_headline(&cats);
         // (1*0.6 + 1.5*0.8 + 1*1.0) / 3.5 = 2.8/3.5 = 0.8

@@ -1,7 +1,6 @@
 /// Shared pipeline helpers used by main.rs and integration tests.
-
-use crate::{dem, topo, autotile, types};
-use types::{Grid, SemanticClass, collision, make_tile_id};
+use crate::{autotile, dem, topo, types};
+use types::{collision, make_tile_id, Grid, SemanticClass};
 
 /// Convert a semantic grid to the autotiled render layer.
 /// Tile ID bits 0-7 = SemanticClass, bits 8-15 = blob autotile variant (0-46).
@@ -23,21 +22,25 @@ pub fn semantic_to_collision(
 ) -> Grid<u8> {
     Grid::from_fn(semantic.width, semantic.height, |col, row| {
         let base = match semantic.get(col, row) {
-            SemanticClass::Water
-            | SemanticClass::BuildingWall
-            | SemanticClass::CliffFace    => collision::BLOCKED,
+            SemanticClass::Water | SemanticClass::BuildingWall | SemanticClass::CliffFace => {
+                collision::BLOCKED
+            }
             SemanticClass::BuildingFloor
             | SemanticClass::BuildingMid
-            | SemanticClass::BuildingTall =>
-                if building_blocked { collision::BLOCKED } else { collision::WALKABLE },
-            SemanticClass::Stairs         => collision::STAIRS_COST,
-            SemanticClass::Road
-            | SemanticClass::Sidewalk
-            | SemanticClass::Plaza        => collision::ROAD_COST,
-            SemanticClass::Path           => collision::PATH_COST,
-            SemanticClass::ParkGrass
-            | SemanticClass::Shoreline    => collision::PARK_COST,
-            _                             => collision::GRASS_COST,
+            | SemanticClass::BuildingTall => {
+                if building_blocked {
+                    collision::BLOCKED
+                } else {
+                    collision::WALKABLE
+                }
+            }
+            SemanticClass::Stairs => collision::STAIRS_COST,
+            SemanticClass::Road | SemanticClass::Sidewalk | SemanticClass::Plaza => {
+                collision::ROAD_COST
+            }
+            SemanticClass::Path => collision::PATH_COST,
+            SemanticClass::ParkGrass | SemanticClass::Shoreline => collision::PARK_COST,
+            _ => collision::GRASS_COST,
         };
         if base >= collision::BLOCKED {
             base
@@ -70,11 +73,22 @@ pub fn process_chunk_lod0(
     elev_cfg: &crate::config::ElevationConfig,
     building_blocked: bool,
 ) -> (Grid<u32>, Grid<u8>) {
-    topo::apply_topography(semantic, elevation, building_polys, origin_x, origin_y, mpc, elev_cfg);
+    topo::apply_topography(
+        semantic,
+        elevation,
+        building_polys,
+        origin_x,
+        origin_y,
+        mpc,
+        elev_cfg,
+    );
     let rise = dem::compute_max_rise(elevation);
     let render = semantic_to_render(semantic);
     let collision = semantic_to_collision(
-        semantic, &rise, building_blocked, elev_cfg.walkable_threshold_m as f32,
+        semantic,
+        &rise,
+        building_blocked,
+        elev_cfg.walkable_threshold_m as f32,
     );
     (render, collision)
 }

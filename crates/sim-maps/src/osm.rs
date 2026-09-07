@@ -12,7 +12,6 @@
 /// Precedence when overlapping a cell (highest overrides):
 ///   Water > BuildingWall > BuildingFloor > CliffFace > Stairs
 ///   > Road > Sidewalk > Path > ParkGrass > Sand > Grass
-
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
@@ -34,7 +33,11 @@ pub struct RoadFeature {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub enum BuildingTier { Low, Mid, Tall }
+pub enum BuildingTier {
+    Low,
+    Mid,
+    Tall,
+}
 
 pub struct BuildingRecord {
     pub poly: Polygon<f64>,
@@ -81,7 +84,14 @@ impl FeatureIndex {
             .flat_map(|r| r.outer_ids.iter().copied())
             .collect();
 
-        pass2_ways(path, &node_map, &mp_relations, &relation_outer_ids, bbox, land_refs)
+        pass2_ways(
+            path,
+            &node_map,
+            &mp_relations,
+            &relation_outer_ids,
+            bbox,
+            land_refs,
+        )
     }
 }
 
@@ -90,7 +100,12 @@ impl FeatureIndex {
 type NodeMap = HashMap<i64, (f64, f64)>;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-enum AreaKind { Water, Park, Building, Plaza }
+enum AreaKind {
+    Water,
+    Park,
+    Building,
+    Plaza,
+}
 
 struct MpRelation {
     kind: AreaKind,
@@ -263,7 +278,11 @@ fn pass2_ways(
             if !bbox_intersects_line(&line, bbox) {
                 return;
             }
-            idx.roads.push(RoadFeature { line, semantic, buffer_m });
+            idx.roads.push(RoadFeature {
+                line,
+                semantic,
+                buffer_m,
+            });
         }
     })?;
 
@@ -278,17 +297,19 @@ fn pass2_ways(
             continue;
         }
         match rel.kind {
-            AreaKind::Water    => idx.water_polys.push(poly),
-            AreaKind::Park     => idx.park_polys.push(poly),
-            AreaKind::Building => idx.buildings.push(BuildingRecord { poly, tier: BuildingTier::Low }),
-            AreaKind::Plaza    => idx.plaza_polys.push(poly),
+            AreaKind::Water => idx.water_polys.push(poly),
+            AreaKind::Park => idx.park_polys.push(poly),
+            AreaKind::Building => idx.buildings.push(BuildingRecord {
+                poly,
+                tier: BuildingTier::Low,
+            }),
+            AreaKind::Plaza => idx.plaza_polys.push(poly),
         }
     }
 
     // Assemble coastline land polygon (best-effort).
     if !coastline_segs.is_empty() {
-        idx.coastline_land_polys =
-            assemble_land_polygon(coastline_segs, bbox, land_refs);
+        idx.coastline_land_polys = assemble_land_polygon(coastline_segs, bbox, land_refs);
     }
 
     log::info!(
@@ -317,9 +338,9 @@ fn building_tier_from_tags(levels: Option<u32>, building_val: &str) -> BuildingT
         };
     }
     match building_val {
-        "house" | "detached" | "bungalow" | "terrace" | "semidetached_house"
-        | "shed" | "garage" | "garages" | "barn" | "greenhouse" | "cabin"
-        | "warehouse" | "industrial" | "hangar" => BuildingTier::Low,
+        "house" | "detached" | "bungalow" | "terrace" | "semidetached_house" | "shed"
+        | "garage" | "garages" | "barn" | "greenhouse" | "cabin" | "warehouse" | "industrial"
+        | "hangar" => BuildingTier::Low,
         "tower" | "skyscraper" => BuildingTier::Tall,
         _ => BuildingTier::Low,
     }
@@ -516,10 +537,15 @@ fn snap_to_bbox(p: (f64, f64), b: &BboxUtm) -> (f64, f64) {
     let dy_s = (cy - b.min_y).abs();
     let dy_n = (cy - b.max_y).abs();
     let min_d = dx_w.min(dx_e).min(dy_s).min(dy_n);
-    if min_d == dx_w { (b.min_x, cy) }
-    else if min_d == dx_e { (b.max_x, cy) }
-    else if min_d == dy_s { (cx, b.min_y) }
-    else { (cx, b.max_y) }
+    if min_d == dx_w {
+        (b.min_x, cy)
+    } else if min_d == dx_e {
+        (b.max_x, cy)
+    } else if min_d == dy_s {
+        (cx, b.min_y)
+    } else {
+        (cx, b.max_y)
+    }
 }
 
 /// Walk clockwise along the bbox perimeter from `from` to `to`,
@@ -596,15 +622,15 @@ pub fn classify_highway(k: &str, v: &str) -> Option<(SemanticClass, f64)> {
         return None;
     }
     Some(match v {
-        "motorway" | "trunk"                          => (SemanticClass::Road,     14.0),
-        "primary"                                      => (SemanticClass::Road,     10.0),
-        "secondary"                                    => (SemanticClass::Road,      8.0),
-        "tertiary"                                     => (SemanticClass::Road,      6.0),
-        "residential" | "unclassified" | "road"       => (SemanticClass::Road,      4.0),
-        "living_street" | "service"                    => (SemanticClass::Road,      3.0),
-        "pedestrian"                                   => (SemanticClass::Sidewalk,  4.0),
-        "footway" | "steps" | "cycleway"               => (SemanticClass::Path,      2.0),
-        "path" | "track" | "bridleway"                 => (SemanticClass::Path,      2.0),
+        "motorway" | "trunk" => (SemanticClass::Road, 14.0),
+        "primary" => (SemanticClass::Road, 10.0),
+        "secondary" => (SemanticClass::Road, 8.0),
+        "tertiary" => (SemanticClass::Road, 6.0),
+        "residential" | "unclassified" | "road" => (SemanticClass::Road, 4.0),
+        "living_street" | "service" => (SemanticClass::Road, 3.0),
+        "pedestrian" => (SemanticClass::Sidewalk, 4.0),
+        "footway" | "steps" | "cycleway" => (SemanticClass::Path, 2.0),
+        "path" | "track" | "bridleway" => (SemanticClass::Path, 2.0),
         _ => return None,
     })
 }

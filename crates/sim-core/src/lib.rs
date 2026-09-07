@@ -7,8 +7,8 @@
 //! See BRIEF.md for the full architecture. The prediction engine is a hard
 //! dependency of the demo's impact and runs without the life-sim.
 
-pub mod aggregate;
 pub mod agent;
+pub mod aggregate;
 pub mod city;
 pub mod geo;
 pub mod lifestyle;
@@ -19,9 +19,9 @@ pub mod pathfind;
 pub mod persona;
 pub mod predict;
 pub mod pums;
+pub mod rag;
 pub mod religion;
 pub mod rubric;
-pub mod rag;
 pub mod sim;
 pub mod state;
 pub mod store;

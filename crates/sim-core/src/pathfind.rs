@@ -25,8 +25,14 @@ impl PartialOrd for Node {
 }
 
 const NEIGHBORS: [(i64, i64); 8] = [
-    (1, 0), (-1, 0), (0, 1), (0, -1),
-    (1, 1), (1, -1), (-1, 1), (-1, -1),
+    (1, 0),
+    (-1, 0),
+    (0, 1),
+    (0, -1),
+    (1, 1),
+    (1, -1),
+    (-1, 1),
+    (-1, -1),
 ];
 
 fn octile(a: Cell, b: Cell) -> u32 {
@@ -58,7 +64,11 @@ pub fn astar(tiles: &TilesDb, start: Cell, goal: Cell, max_expand: usize) -> Opt
     let mut g_score: HashMap<Cell, u32> = HashMap::new();
     let mut came: HashMap<Cell, Cell> = HashMap::new();
     g_score.insert(start, 0);
-    open.push(Node { f: octile(start, goal), g: 0, cell: start });
+    open.push(Node {
+        f: octile(start, goal),
+        g: 0,
+        cell: start,
+    });
 
     let mut expanded = 0usize;
     while let Some(cur) = open.pop() {
@@ -92,7 +102,11 @@ pub fn astar(tiles: &TilesDb, start: Cell, goal: Cell, max_expand: usize) -> Opt
             if tentative < *g_score.get(&n).unwrap_or(&u32::MAX) {
                 came.insert(n, cur.cell);
                 g_score.insert(n, tentative);
-                open.push(Node { f: tentative + octile(n, goal), g: tentative, cell: n });
+                open.push(Node {
+                    f: tentative + octile(n, goal),
+                    g: tentative,
+                    cell: n,
+                });
             }
         }
     }

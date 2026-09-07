@@ -1,9 +1,10 @@
 /// Phase 5 tests: blob autotile neighbour mask, corner suppression,
 /// variant lookup, and end-to-end autotile_grid / semantic_to_render.
-
 use sim_maps::{
-    autotile::{autotile_grid, blob_variant, neighbor_mask, suppress_corners, BLOB_VARIANTS, VARIANT_COUNT},
-    types::{Grid, SemanticClass, make_tile_id, tile_id_variant},
+    autotile::{
+        autotile_grid, blob_variant, neighbor_mask, suppress_corners, BLOB_VARIANTS, VARIANT_COUNT,
+    },
+    types::{make_tile_id, tile_id_variant, Grid, SemanticClass},
 };
 
 // ── BLOB_VARIANTS table sanity ────────────────────────────────────────────────
@@ -15,7 +16,11 @@ fn exactly_47_distinct_variants_in_table() {
         seen.insert(v);
     }
     // Values used in the table are 0..=46, so there should be exactly 47.
-    assert_eq!(seen.len(), 47, "table should use exactly 47 distinct values");
+    assert_eq!(
+        seen.len(),
+        47,
+        "table should use exactly 47 distinct values"
+    );
     assert_eq!(*seen.iter().max().unwrap(), 46, "max variant should be 46");
 }
 
@@ -29,7 +34,7 @@ fn variant_count_constant_is_47() {
 #[test]
 fn suppress_ne_without_north_edge() {
     // NE bit set but N=0 → NE must be cleared.
-    let raw = 0b00000110u8;  // E(bit2)=1, NE(bit1)=1, N(bit0)=0
+    let raw = 0b00000110u8; // E(bit2)=1, NE(bit1)=1, N(bit0)=0
     let suppressed = suppress_corners(raw);
     assert_eq!(suppressed, 0b00000100u8, "NE cleared when N=0");
 }
@@ -37,7 +42,7 @@ fn suppress_ne_without_north_edge() {
 #[test]
 fn suppress_ne_without_east_edge() {
     // NE bit set but E=0 → NE must be cleared.
-    let raw = 0b00000011u8;  // N(bit0)=1, NE(bit1)=1, E(bit2)=0
+    let raw = 0b00000011u8; // N(bit0)=1, NE(bit1)=1, E(bit2)=0
     let suppressed = suppress_corners(raw);
     assert_eq!(suppressed, 0b00000001u8, "NE cleared when E=0");
 }
@@ -45,15 +50,18 @@ fn suppress_ne_without_east_edge() {
 #[test]
 fn suppress_all_corners_when_edges_absent() {
     // Only diagonal bits set, no edge bits.
-    let raw = 0b10000010u8;  // NW(bit7)=1, NE(bit1)=1
+    let raw = 0b10000010u8; // NW(bit7)=1, NE(bit1)=1
     let suppressed = suppress_corners(raw);
-    assert_eq!(suppressed, 0, "all corners cleared when adjacent edges absent");
+    assert_eq!(
+        suppressed, 0,
+        "all corners cleared when adjacent edges absent"
+    );
 }
 
 #[test]
 fn suppress_keeps_valid_corner() {
     // N+E+NE all set → NE stays.
-    let raw = 0b00000111u8;  // N(0)+NE(1)+E(2)
+    let raw = 0b00000111u8; // N(0)+NE(1)+E(2)
     let suppressed = suppress_corners(raw);
     assert_eq!(suppressed, raw, "NE kept when N=1 and E=1");
     assert_eq!(blob_variant(raw), 4, "N+NE+E → variant 4");
@@ -165,8 +173,11 @@ fn autotile_grid_uniform_5x5_all_variant_46() {
     let variants = autotile_grid(&grid);
     for row in 0..5u32 {
         for col in 0..5u32 {
-            assert_eq!(*variants.get(col, row), 46,
-                "({col},{row}) should be fully surrounded");
+            assert_eq!(
+                *variants.get(col, row),
+                46,
+                "({col},{row}) should be fully surrounded"
+            );
         }
     }
 }
@@ -185,8 +196,16 @@ fn autotile_grid_checkerboard_all_isolated() {
     let variants = autotile_grid(&grid);
     // Only interior cells have any in-bounds neighbours to differ from.
     // Interior cells (1,1) and (2,2): Grass surrounded by Water.
-    assert_eq!(*variants.get(1, 1), 0, "interior Grass cell: all neighbours are Water");
-    assert_eq!(*variants.get(2, 2), 0, "interior Grass cell: all neighbours are Water");
+    assert_eq!(
+        *variants.get(1, 1),
+        0,
+        "interior Grass cell: all neighbours are Water"
+    );
+    assert_eq!(
+        *variants.get(2, 2),
+        0,
+        "interior Grass cell: all neighbours are Water"
+    );
 }
 
 // ── semantic_to_render packs variant into tile ID ─────────────────────────────
@@ -200,7 +219,11 @@ fn render_tile_id_encodes_variant() {
     assert_eq!(center_variant, 46);
 
     let tile_id = make_tile_id(SemanticClass::Water, center_variant);
-    assert_eq!(tile_id_variant(tile_id), 46, "bits 8-15 of tile_id should carry the variant");
+    assert_eq!(
+        tile_id_variant(tile_id),
+        46,
+        "bits 8-15 of tile_id should carry the variant"
+    );
 }
 
 #[test]

@@ -196,7 +196,10 @@ impl Engine {
     pub fn new(client: ModelClient) -> Self {
         Engine {
             client,
-            max_clusters: std::env::var("MAX_CLUSTERS").ok().and_then(|v| v.parse().ok()).unwrap_or(160),
+            max_clusters: std::env::var("MAX_CLUSTERS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(160),
             batch_size: 12,
         }
     }
@@ -209,9 +212,17 @@ impl Engine {
         }
     }
 
-    fn build_batch_prompt(poll: &Poll, profiles: &[(usize, &str)], city_name: &str, news_block: &str) -> String {
+    fn build_batch_prompt(
+        poll: &Poll,
+        profiles: &[(usize, &str)],
+        city_name: &str,
+        news_block: &str,
+    ) -> String {
         let mut s = String::new();
-        s.push_str(&format!("Date (reason as of this date): {}\n", poll.as_of_date));
+        s.push_str(&format!(
+            "Date (reason as of this date): {}\n",
+            poll.as_of_date
+        ));
         if !news_block.is_empty() {
             s.push_str(news_block);
             s.push('\n');
@@ -222,7 +233,10 @@ impl Engine {
         match poll.framing {
             Framing::Vote => {
                 s.push_str(&format!("Ballot question / choice: {}\n", poll.question));
-                s.push_str(&format!("What it does (neutral summary): {}\n", poll.description));
+                s.push_str(&format!(
+                    "What it does (neutral summary): {}\n",
+                    poll.description
+                ));
                 s.push_str("A YES means voting for / in favor.\n\n");
             }
             Framing::Belief => {
@@ -278,7 +292,11 @@ p_yes is a probability between 0 and 1. Be realistic and calibrated to {city_nam
         // backtests keep an old as_of_date and never see it, so they stay leakage-free.
         let news_block = if poll.as_of_date.as_str() >= "2025-06-01" {
             let news = crate::news::load_filtered(&pop.profile.slug, &poll.as_of_date);
-            let rag_index = crate::rag::RagIndex::from_news_filtered(&pop.profile.slug, &news, &poll.as_of_date);
+            let rag_index = crate::rag::RagIndex::from_news_filtered(
+                &pop.profile.slug,
+                &news,
+                &poll.as_of_date,
+            );
             let retrieved = rag_index.retrieve_context(&poll.question, 4);
             if retrieved.is_empty() {
                 crate::news::prompt_block_filtered(&pop.profile.slug, &poll.as_of_date)
@@ -304,7 +322,8 @@ p_yes is a probability between 0 and 1. Be realistic and calibrated to {city_nam
                 .collect();
             let prof_refs: Vec<(usize, &str)> =
                 profiles.iter().map(|(i, s)| (*i, s.as_str())).collect();
-            let user = Self::build_batch_prompt(poll, &prof_refs, &pop.profile.prompt_name, &news_block);
+            let user =
+                Self::build_batch_prompt(poll, &prof_refs, &pop.profile.prompt_name, &news_block);
             let client = self.client.clone();
             let sys2 = sys.clone();
             let idxs: Vec<usize> = (batch_start..end).collect();
@@ -317,6 +336,12 @@ p_yes is a probability between 0 and 1. Be realistic and calibrated to {city_nam
         }
 
         let results = futures::future::join_all(futs).await;
+        if calls > 0 && failed_batches == calls {
+            anyhow::bail!(
+                "Upstream model call failed for all batches (model: {})",
+                model.id()
+            );
+        }
         for (idxs, resp) in results {
             match resp {
                 Ok(text) => {
@@ -347,8 +372,12 @@ p_yes is a probability between 0 and 1. Be realistic and calibrated to {city_nam
                                 }
                             }
                             true
-                        } else { false }
-                    } else { false };
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    };
                     if !parsed_ok {
                         failed_batches += 1;
                     }
@@ -360,7 +389,10 @@ p_yes is a probability between 0 and 1. Be realistic and calibrated to {city_nam
         }
 
         if failed_batches > 0 && failed_batches >= calls {
-            anyhow::bail!("all LLM prediction batches failed ({} failed calls)", failed_batches);
+            anyhow::bail!(
+                "all LLM prediction batches failed ({} failed calls)",
+                failed_batches
+            );
         }
 
         // multi-option framing: aggregate the per-archetype distribution over agents.
@@ -379,7 +411,11 @@ p_yes is a probability between 0 and 1. Be realistic and calibrated to {city_nam
                     continue;
                 }
                 let q = a.income_quintile(&cutoffs);
-                let w = if is_election { a.weight() * turnout_propensity(a, q) } else { a.weight() };
+                let w = if is_election {
+                    a.weight() * turnout_propensity(a, q)
+                } else {
+                    a.weight()
+                };
                 answers.push(aggregate::WeightedAnswer {
                     weight: w,
                     probs: dist_by_cluster[cluster_of[i]].clone(),
@@ -388,11 +424,22 @@ p_yes is a probability between 0 and 1. Be realistic and calibrated to {city_nam
             let weights: Vec<f64> = answers.iter().map(|x| x.weight).collect();
             let dist = aggregate::weighted_distribution(&answers, n_opts);
             let p_top = dist.iter().cloned().fold(0.0f64, f64::max);
-            let p_distribution: Vec<(String, f64)> =
-                poll.options.iter().cloned().zip(dist.iter().cloned()).collect();
-            let sample_rationales: Vec<String> =
-                rationale.iter().filter(|r| !r.is_empty()).take(8).cloned().collect();
-            let top_rows: Vec<(f64, f64)> = answers.iter().map(|a| (a.weight, a.probs.iter().cloned().fold(0.0f64, f64::max))).collect();
+            let p_distribution: Vec<(String, f64)> = poll
+                .options
+                .iter()
+                .cloned()
+                .zip(dist.iter().cloned())
+                .collect();
+            let sample_rationales: Vec<String> = rationale
+                .iter()
+                .filter(|r| !r.is_empty())
+                .take(8)
+                .cloned()
+                .collect();
+            let top_rows: Vec<(f64, f64)> = answers
+                .iter()
+                .map(|a| (a.weight, a.probs.iter().cloned().fold(0.0f64, f64::max)))
+                .collect();
             let (ci_l, ci_h) = aggregate::weighted_bootstrap_ci(&top_rows, 100, 0.05, 42);
             return Ok(PollResult {
                 question: poll.question.clone(),
@@ -439,24 +486,53 @@ p_yes is a probability between 0 and 1. Be realistic and calibrated to {city_nam
             };
             let p = agent_p[i];
             rows.push((w, p));
-            breakdown_rows.get_mut("age").unwrap().push((a.rec.age_band().to_string(), w, p));
-            breakdown_rows.get_mut("race").unwrap().push((a.rec.race_eth().to_string(), w, p));
-            breakdown_rows.get_mut("educ").unwrap().push((a.rec.educ().to_string(), w, p));
-            breakdown_rows.get_mut("income_q").unwrap().push((format!("q{q}"), w, p));
-            breakdown_rows.get_mut("puma").unwrap().push((a.rec.puma.to_string(), w, p));
-            breakdown_rows.get_mut("tenure").unwrap().push((if a.homeowner { "own".into() } else { "rent".into() }, w, p));
+            breakdown_rows
+                .get_mut("age")
+                .unwrap()
+                .push((a.rec.age_band().to_string(), w, p));
+            breakdown_rows
+                .get_mut("race")
+                .unwrap()
+                .push((a.rec.race_eth().to_string(), w, p));
+            breakdown_rows
+                .get_mut("educ")
+                .unwrap()
+                .push((a.rec.educ().to_string(), w, p));
+            breakdown_rows
+                .get_mut("income_q")
+                .unwrap()
+                .push((format!("q{q}"), w, p));
+            breakdown_rows
+                .get_mut("puma")
+                .unwrap()
+                .push((a.rec.puma.to_string(), w, p));
+            breakdown_rows.get_mut("tenure").unwrap().push((
+                if a.homeowner {
+                    "own".into()
+                } else {
+                    "rent".into()
+                },
+                w,
+                p,
+            ));
         }
 
         let p_yes = aggregate::weighted_yes_share(&rows);
         let weights: Vec<f64> = rows.iter().map(|r| r.0).collect();
-        let (ci_low, ci_high) = aggregate::weighted_bootstrap_ci(&rows, 400, 0.05, pop.seed ^ 0x9e3779b9);
+        let (ci_low, ci_high) =
+            aggregate::weighted_bootstrap_ci(&rows, 400, 0.05, pop.seed ^ 0x9e3779b9);
         let mut breakdowns: HashMap<String, Vec<DemoBreak>> = HashMap::new();
         for (d, rws) in breakdown_rows {
             let b = aggregate::breakdown(&rws);
             breakdowns.insert(
                 d.to_string(),
                 b.into_iter()
-                    .map(|(k, ys, w, n)| DemoBreak { key: k, yes_share: ys, weight: w, n })
+                    .map(|(k, ys, w, n)| DemoBreak {
+                        key: k,
+                        yes_share: ys,
+                        weight: w,
+                        n,
+                    })
                     .collect(),
             );
         }
@@ -509,14 +585,19 @@ p_yes is a probability between 0 and 1. Be realistic and calibrated to {city_nam
     pub async fn chatter(&self, pop: &Population, ids: &[u32]) -> Vec<(u32, String)> {
         let people: Vec<(u32, &str)> = ids
             .iter()
-            .filter_map(|&id| pop.agents.get(id as usize).map(|a| (id, a.persona.as_str())))
+            .filter_map(|&id| {
+                pop.agents
+                    .get(id as usize)
+                    .map(|a| (id, a.persona.as_str()))
+            })
             .collect();
         if people.is_empty() {
             return vec![];
         }
         let news = crate::news::load(&pop.profile.slug);
         let rag_index = crate::rag::RagIndex::from_news(&pop.profile.slug, &news);
-        let rag_context = rag_index.retrieve_context("local daily life news transit housing infrastructure", 3);
+        let rag_context =
+            rag_index.retrieve_context("local daily life news transit housing infrastructure", 3);
 
         let sys = format!(
             "You voice the private inner monologue of real {city} residents for an ambient \
@@ -585,9 +666,24 @@ mod tests {
 
     fn rec(age: u8, schl: u8, povpip: f64) -> PumsRecord {
         PumsRecord {
-            serialno: "x".into(), sporder: 1, pwgtp: 10.0, age, sex: 1, rac1p: 1, hisp: 1, schl,
-            pincp: povpip, povpip, occp: 1020, cow: 1, esr: 1, cit: 1, mar: 5, nativity: 1,
-            puma: 7510, adjinc: 1.0,
+            serialno: "x".into(),
+            sporder: 1,
+            pwgtp: 10.0,
+            age,
+            sex: 1,
+            rac1p: 1,
+            hisp: 1,
+            schl,
+            pincp: povpip,
+            povpip,
+            occp: 1020,
+            cow: 1,
+            esr: 1,
+            cit: 1,
+            mar: 5,
+            nativity: 1,
+            puma: 7510,
+            adjinc: 1.0,
         }
     }
 
@@ -607,7 +703,13 @@ mod tests {
     #[test]
     fn clustering_bounds_count() {
         let recs: Vec<PumsRecord> = (0..2000)
-            .map(|i| rec(18 + (i % 70) as u8, 16 + (i % 9) as u8, 20000.0 + (i as f64) * 500.0))
+            .map(|i| {
+                rec(
+                    18 + (i % 70) as u8,
+                    16 + (i % 9) as u8,
+                    20000.0 + (i as f64) * 500.0,
+                )
+            })
             .collect();
         let pop = build_population(&recs, 1500, 42, None);
         let clusters = cluster_agents(&pop, 80);

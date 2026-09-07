@@ -1,11 +1,10 @@
 /// Phase 3 tests: OSM tag classification, polygon rasterization, road buffer,
 /// building wall detection, precedence enforcement, and debug PNG.
-
 use sim_maps::{
+    debug::dump_semantic_png,
     osm::{classify_highway, BuildingRecord, BuildingTier, FeatureIndex, RoadFeature},
     raster::{detect_building_walls, rasterize_semantic_grid, rect_poly, road_line},
     types::{Grid, SemanticClass},
-    debug::dump_semantic_png,
 };
 use tempfile::TempDir;
 
@@ -51,7 +50,10 @@ fn center_building_grid() -> Grid<SemanticClass> {
     let building = rect_poly(30.0, 30.0, 70.0, 70.0);
 
     let mut features = FeatureIndex::empty();
-    features.buildings.push(BuildingRecord { poly: building, tier: BuildingTier::Low });
+    features.buildings.push(BuildingRecord {
+        poly: building,
+        tier: BuildingTier::Low,
+    });
 
     rasterize_semantic_grid(&features, origin_x, origin_y, cells, cells, mpc)
 }
@@ -97,7 +99,10 @@ fn building_boundary_cells_are_wall() {
             }
         }
     }
-    assert!(found_wall, "building should have at least one BuildingWall cell");
+    assert!(
+        found_wall,
+        "building should have at least one BuildingWall cell"
+    );
 }
 
 // ── road buffer ───────────────────────────────────────────────────────────────
@@ -123,16 +128,25 @@ fn road_paints_cells_within_buffer() {
     // origin_y=0, height=50, mpc=2 → cell center y = origin_y + (height - row - 0.5)*mpc
     // y=50 → row such that 0 + (50 - row - 0.5)*2 = 50 → 50 - row - 0.5 = 25 → row = 24.5 ≈ 24
     let road_row = 24u32;
-    assert_eq!(*grid.get(25, road_row), SemanticClass::Road,
-               "center of road should be Road");
+    assert_eq!(
+        *grid.get(25, road_row),
+        SemanticClass::Road,
+        "center of road should be Road"
+    );
 
     // 1 cell north (row=23) should also be road (within 6 m buffer).
-    assert_eq!(*grid.get(25, 23), SemanticClass::Road,
-               "1 cell away should still be within buffer");
+    assert_eq!(
+        *grid.get(25, 23),
+        SemanticClass::Road,
+        "1 cell away should still be within buffer"
+    );
 
     // 4 cells north (row=20) is 8 m away → outside 6 m buffer → Grass.
-    assert_eq!(*grid.get(25, 20), SemanticClass::Grass,
-               "4 cells away should be outside 6 m buffer");
+    assert_eq!(
+        *grid.get(25, 20),
+        SemanticClass::Grass,
+        "4 cells away should be outside 6 m buffer"
+    );
 }
 
 // ── precedence enforcement ────────────────────────────────────────────────────
@@ -173,12 +187,15 @@ fn building_overwrites_park() {
     let mpc = 2.0_f64;
     let cells = 20u32;
 
-    let park     = rect_poly(0.0, 0.0, 40.0, 40.0);
+    let park = rect_poly(0.0, 0.0, 40.0, 40.0);
     let building = rect_poly(10.0, 10.0, 30.0, 30.0);
 
     let mut features = FeatureIndex::empty();
     features.park_polys.push(park);
-    features.buildings.push(BuildingRecord { poly: building, tier: BuildingTier::Low });
+    features.buildings.push(BuildingRecord {
+        poly: building,
+        tier: BuildingTier::Low,
+    });
 
     let grid = rasterize_semantic_grid(&features, 0.0, 0.0, cells, cells, mpc);
 
@@ -204,7 +221,16 @@ fn detect_walls_on_isolated_square() {
     detect_building_walls(&mut grid);
 
     // All 8 cells on the outer ring of the 3×3 become Wall.
-    let outer = [(1,1),(2,1),(3,1),(1,2),(3,2),(1,3),(2,3),(3,3)];
+    let outer = [
+        (1, 1),
+        (2, 1),
+        (3, 1),
+        (1, 2),
+        (3, 2),
+        (1, 3),
+        (2, 3),
+        (3, 3),
+    ];
     for (col, row) in outer {
         assert_eq!(
             *grid.get(col, row),
@@ -233,5 +259,9 @@ fn dump_png_creates_file() {
 
     // Verify it's a valid PNG by checking the magic bytes.
     let bytes = std::fs::read(&path).unwrap();
-    assert_eq!(&bytes[..8], b"\x89PNG\r\n\x1a\n", "should be valid PNG magic");
+    assert_eq!(
+        &bytes[..8],
+        b"\x89PNG\r\n\x1a\n",
+        "should be valid PNG magic"
+    );
 }

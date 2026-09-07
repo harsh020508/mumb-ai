@@ -1,4 +1,4 @@
-# Default pipeline config (San Francisco historical artifact).
+# Default pipeline config (Mumbai/Multi-City pipeline config).
 # Per-city Indian maps live in config/cities/*.toml and use their own UTM zones.
 
 [pipeline]
@@ -6,7 +6,7 @@ meters_per_cell = 2.0       # cell resolution
 chunk_meters    = 250.0     # chunk side length → 125×125 cells
 lod_levels      = 6         # LOD 0 (full) … 5 (1/32), covers whole-SF minimap
 
-# San Francisco bounding box in WGS-84 (EPSG:4326), used for osmium clipping.
+# Mumbai bounding box in WGS-84 (EPSG:4326), used for osmium clipping.
 # The pipeline reprojects this to UTM 10N at startup.
 [bbox_wgs84]
 west  = -122.5247

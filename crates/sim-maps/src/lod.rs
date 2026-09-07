@@ -7,7 +7,6 @@
 ///
 /// Re-autotiling is done in main.rs after downsampling the semantic grid so
 /// that tile borders look correct at every zoom level.
-
 use crate::types::{Grid, SemanticClass};
 
 /// Downsample a semantic grid by `factor` using majority vote.
@@ -19,7 +18,7 @@ use crate::types::{Grid, SemanticClass};
 /// survive aggressive downsampling.
 pub fn downsample_semantic(grid: &Grid<SemanticClass>, factor: u32) -> Grid<SemanticClass> {
     assert!(factor >= 1, "downsample factor must be ≥ 1");
-    let out_w = (grid.width  + factor - 1) / factor;
+    let out_w = (grid.width + factor - 1) / factor;
     let out_h = (grid.height + factor - 1) / factor;
 
     Grid::from_fn(out_w, out_h, |oc, or_| {
@@ -37,7 +36,7 @@ pub fn downsample_semantic(grid: &Grid<SemanticClass>, factor: u32) -> Grid<Sema
 /// a single BLOCKED cell (255) keeps the whole LOD block impassable.
 pub fn downsample_collision(grid: &Grid<u8>, factor: u32) -> Grid<u8> {
     assert!(factor >= 1, "downsample factor must be ≥ 1");
-    let out_w = (grid.width  + factor - 1) / factor;
+    let out_w = (grid.width + factor - 1) / factor;
     let out_h = (grid.height + factor - 1) / factor;
 
     Grid::from_fn(out_w, out_h, |oc, or_| {
@@ -57,11 +56,7 @@ pub fn downsample_collision(grid: &Grid<u8>, factor: u32) -> Grid<u8> {
 
 const NUM_CLASSES: usize = 15;
 
-fn majority_class(
-    grid: &Grid<SemanticClass>,
-    x0: u32, y0: u32,
-    x1: u32, y1: u32,
-) -> SemanticClass {
+fn majority_class(grid: &Grid<SemanticClass>, x0: u32, y0: u32, x1: u32, y1: u32) -> SemanticClass {
     let mut counts = [0u32; NUM_CLASSES];
     for row in y0..y1 {
         for col in x0..x1 {

@@ -45,7 +45,9 @@ pub struct CrsConfig {
 
 impl Default for CrsConfig {
     fn default() -> Self {
-        Self { utm_epsg: default_utm_epsg() }
+        Self {
+            utm_epsg: default_utm_epsg(),
+        }
     }
 }
 

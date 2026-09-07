@@ -32,12 +32,11 @@ pub fn path(slug: &str) -> String {
     format!("data/news/{slug}.json")
 }
 
-
-
 pub fn load_filtered(slug: &str, as_of_date: &str) -> CityNews {
     let mut news = load(slug);
     if !as_of_date.is_empty() {
-        news.articles.retain(|a| !a.date.is_empty() && a.date.as_str() <= as_of_date);
+        news.articles
+            .retain(|a| !a.date.is_empty() && a.date.as_str() <= as_of_date);
     }
     news
 }
@@ -47,16 +46,22 @@ pub fn prompt_block_filtered(slug: &str, as_of_date: &str) -> String {
     if news.articles.is_empty() {
         return String::new();
     }
-    let effective_date = if news.date.is_empty() || (!as_of_date.is_empty() && news.date.as_str() > as_of_date) {
-        as_of_date
-    } else {
-        &news.date
-    };
-    let mut s = format!("Recent local and national news that residents are aware of (as of {effective_date}):
-");
+    let effective_date =
+        if news.date.is_empty() || (!as_of_date.is_empty() && news.date.as_str() > as_of_date) {
+            as_of_date
+        } else {
+            &news.date
+        };
+    let mut s = format!(
+        "Recent local and national news that residents are aware of (as of {effective_date}):
+"
+    );
     for a in news.articles.iter().take(6) {
-        s.push_str(&format!("- {}. {}
-", a.headline, a.summary));
+        s.push_str(&format!(
+            "- {}. {}
+",
+            a.headline, a.summary
+        ));
     }
     s
 }
@@ -105,13 +110,23 @@ pub fn today() -> String {
 
 fn urlencode(s: &str) -> String {
     s.chars()
-        .map(|c| if c.is_ascii_alphanumeric() { c.to_string() } else { format!("%{:02X}", c as u32) })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() {
+                c.to_string()
+            } else {
+                format!("%{:02X}", c as u32)
+            }
+        })
         .collect()
 }
 
 /// Pull recent headlines for a city from newsapi.org and map to our Article shape.
 /// Best-effort; article dates use the real publish date when present.
-pub async fn fetch_newsapi(query: &str, api_key: &str, _date: &str) -> anyhow::Result<Vec<Article>> {
+pub async fn fetch_newsapi(
+    query: &str,
+    api_key: &str,
+    _date: &str,
+) -> anyhow::Result<Vec<Article>> {
     // searchIn=title keeps headlines actually ABOUT the city; sorted newest-first.
     let url = format!(
         "https://newsapi.org/v2/everything?q=%22{}%22&searchIn=title&language=en&sortBy=publishedAt&pageSize=10",
@@ -121,11 +136,22 @@ pub async fn fetch_newsapi(query: &str, api_key: &str, _date: &str) -> anyhow::R
         .timeout(std::time::Duration::from_secs(10))
         .user_agent("mumb-ai-daemon")
         .build()?;
-    let v: serde_json::Value = client.get(&url).header("X-Api-Key", api_key).send().await?.json().await?;
+    let v: serde_json::Value = client
+        .get(&url)
+        .header("X-Api-Key", api_key)
+        .send()
+        .await?
+        .json()
+        .await?;
     let mut out = Vec::new();
     if let Some(arr) = v.get("articles").and_then(|x| x.as_array()) {
         for a in arr {
-            let headline = a.get("title").and_then(|x| x.as_str()).unwrap_or("").trim().to_string();
+            let headline = a
+                .get("title")
+                .and_then(|x| x.as_str())
+                .unwrap_or("")
+                .trim()
+                .to_string();
             if headline.is_empty() || headline == "[Removed]" {
                 continue;
             }
@@ -137,10 +163,19 @@ pub async fn fetch_newsapi(query: &str, api_key: &str, _date: &str) -> anyhow::R
                 .unwrap_or_default();
             out.push(Article {
                 headline,
-                summary: a.get("description").and_then(|x| x.as_str()).unwrap_or("").trim().to_string(),
+                summary: a
+                    .get("description")
+                    .and_then(|x| x.as_str())
+                    .unwrap_or("")
+                    .trim()
+                    .to_string(),
                 topic: "news".to_string(),
                 salience: String::new(),
-                url: a.get("url").and_then(|x| x.as_str()).unwrap_or("").to_string(),
+                url: a
+                    .get("url")
+                    .and_then(|x| x.as_str())
+                    .unwrap_or("")
+                    .to_string(),
                 date: pub_date,
             });
             if out.len() >= 6 {

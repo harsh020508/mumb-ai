@@ -75,7 +75,9 @@ impl TilesDb {
     pub fn open(path: &str) -> Result<Self> {
         let conn = Connection::open(path).with_context(|| format!("open tiles db {path}"))?;
         let manifest_json: String = conn
-            .query_row("SELECT value FROM meta WHERE key='manifest'", [], |r| r.get(0))
+            .query_row("SELECT value FROM meta WHERE key='manifest'", [], |r| {
+                r.get(0)
+            })
             .context("read manifest from tiles.db")?;
         let m: serde_json::Value = serde_json::from_str(&manifest_json)?;
         let bbox = &m["bbox_utm"];
@@ -83,11 +85,10 @@ impl TilesDb {
         let cells_per_chunk = m["cells_per_chunk"].as_i64().unwrap_or(125);
         let meters_per_cell = m["meters_per_cell"].as_f64().unwrap_or(2.0);
         // grid extent from chunk table
-        let (max_cx, max_cy): (i64, i64) = conn.query_row(
-            "SELECT MAX(cx), MAX(cy) FROM chunks WHERE lod=0",
-            [],
-            |r| Ok((r.get(0)?, r.get(1)?)),
-        )?;
+        let (max_cx, max_cy): (i64, i64) =
+            conn.query_row("SELECT MAX(cx), MAX(cy) FROM chunks WHERE lod=0", [], |r| {
+                Ok((r.get(0)?, r.get(1)?))
+            })?;
         let chunks_x = max_cx + 1;
         let chunks_y = max_cy + 1;
         let manifest = Manifest {
@@ -163,7 +164,7 @@ impl TilesDb {
     /// Movement cost to enter a cell: 1 + terrain penalty (blocked = None).
     pub fn step_cost(&self, c: Cell) -> Option<u32> {
         let v = self.cost(c);
-        if v >= 255 {
+        if v == 255 {
             None
         } else {
             Some(1 + v as u32)
@@ -218,7 +219,10 @@ impl TilesDb {
             (ccx * cpc + cpc / 2).clamp(0, self.manifest.cells_x - 1),
             (ccy * cpc + cpc / 2).clamp(0, self.manifest.cells_y - 1),
         ))
-        .unwrap_or(Cell::new(self.manifest.cells_x / 2, self.manifest.cells_y / 2))
+        .unwrap_or(Cell::new(
+            self.manifest.cells_x / 2,
+            self.manifest.cells_y / 2,
+        ))
     }
 
     pub fn nearest_walkable(&self, c: Cell) -> Option<Cell> {
@@ -284,7 +288,8 @@ pub fn utm_to_lonlat(easting: f64, northing: f64, zone: f64) -> (f64, f64) {
                     / 720.0);
     let lon = lon0
         + (d - (1.0 + 2.0 * t1 + c1) * d.powi(3) / 6.0
-            + (5.0 - 2.0 * c1 + 28.0 * t1 - 3.0 * c1 * c1 + 8.0 * ep2 + 24.0 * t1 * t1) * d.powi(5)
+            + (5.0 - 2.0 * c1 + 28.0 * t1 - 3.0 * c1 * c1 + 8.0 * ep2 + 24.0 * t1 * t1)
+                * d.powi(5)
                 / 120.0)
             / cos_phi1;
 
@@ -312,16 +317,19 @@ pub fn lonlat_to_utm10n(lon_deg: f64, lat_deg: f64) -> (f64, f64) {
     let aa = phi.cos() * (lam - lon0);
     let m = a
         * ((1.0 - e2 / 4.0 - 3.0 * e2 * e2 / 64.0 - 5.0 * e2.powi(3) / 256.0) * phi
-            - (3.0 * e2 / 8.0 + 3.0 * e2 * e2 / 32.0 + 45.0 * e2.powi(3) / 1024.0) * (2.0 * phi).sin()
+            - (3.0 * e2 / 8.0 + 3.0 * e2 * e2 / 32.0 + 45.0 * e2.powi(3) / 1024.0)
+                * (2.0 * phi).sin()
             + (15.0 * e2 * e2 / 256.0 + 45.0 * e2.powi(3) / 1024.0) * (4.0 * phi).sin()
             - (35.0 * e2.powi(3) / 3072.0) * (6.0 * phi).sin());
     let easting = k0
         * n
-        * (aa + (1.0 - t + c) * aa.powi(3) / 6.0
+        * (aa
+            + (1.0 - t + c) * aa.powi(3) / 6.0
             + (5.0 - 18.0 * t + t * t + 72.0 * c - 58.0 * ep2) * aa.powi(5) / 120.0)
         + 500_000.0;
     let northing = k0
-        * (m + n * phi.tan()
+        * (m + n
+            * phi.tan()
             * (aa * aa / 2.0
                 + (5.0 - t + 9.0 * c + 4.0 * c * c) * aa.powi(4) / 24.0
                 + (61.0 - 58.0 * t + t * t + 600.0 * c - 330.0 * ep2) * aa.powi(6) / 720.0));

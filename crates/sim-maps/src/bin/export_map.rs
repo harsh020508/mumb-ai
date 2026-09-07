@@ -13,26 +13,28 @@
 ///   /tmp/map/sf_tiles.png   — Whole city at LOD 4, 4 px/cell (~2144×1920)
 ///
 /// Usage: cargo run --bin export_map [-- --db tiles.db]
-
 use anyhow::{Context, Result};
 use clap::Parser;
+use image::{DynamicImage, GenericImageView, RgbImage};
+use rusqlite::{params, Connection};
 use sim_maps::{
     config::Config,
     crs::reproject_bbox,
     db::decompress_u32,
     debug::semantic_color,
     render,
-    types::{SemanticClass, tile_id_class, tile_id_variant},
+    types::{tile_id_class, tile_id_variant, SemanticClass},
 };
-use image::{DynamicImage, GenericImageView, RgbImage};
-use rusqlite::{params, Connection};
 use std::path::PathBuf;
 
 const ATLAS_TILE: u32 = 32;
 const ATLAS_COLS: u32 = 47;
 
 #[derive(Parser, Debug)]
-#[command(name = "export_map", about = "Stitch tiles.db chunks into full-city PNGs")]
+#[command(
+    name = "export_map",
+    about = "Stitch tiles.db chunks into full-city PNGs"
+)]
 struct Cli {
     #[arg(short, long, default_value = "config/pipeline.toml")]
     config: PathBuf,
@@ -67,17 +69,25 @@ fn main() -> Result<()> {
 
     std::fs::create_dir_all(&cli.out)?;
 
-    let conn = Connection::open(&cli.db)
-        .with_context(|| format!("open {}", cli.db.display()))?;
+    let conn = Connection::open(&cli.db).with_context(|| format!("open {}", cli.db.display()))?;
 
-    let atlas = image::open(&cfg.atlas.path)
-        .with_context(|| format!("open atlas {}", cfg.atlas.path))?;
+    let atlas =
+        image::open(&cfg.atlas.path).with_context(|| format!("open atlas {}", cfg.atlas.path))?;
 
-    let facade_atlas = image::open("assets/facade_atlas.png")
-        .context("open assets/facade_atlas.png")?;
+    let facade_atlas =
+        image::open("assets/facade_atlas.png").context("open assets/facade_atlas.png")?;
 
     if cli.full {
-        render_full_city(&conn, &atlas, &facade_atlas, nx, ny, cells_full, cli.full_scale, &cli.out)?;
+        render_full_city(
+            &conn,
+            &atlas,
+            &facade_atlas,
+            nx,
+            ny,
+            cells_full,
+            cli.full_scale,
+            &cli.out,
+        )?;
         return Ok(());
     }
 
@@ -97,18 +107,22 @@ fn main() -> Result<()> {
         }
 
         let mut stmt = conn.prepare("SELECT cx, cy, render, w, h FROM chunks WHERE lod=?1")?;
-        let rows = stmt.query_map(params![lod], |row| Ok((
-            row.get::<_, i32>(0)?,
-            row.get::<_, i32>(1)?,
-            row.get::<_, Vec<u8>>(2)?,
-            row.get::<_, u32>(3)?,
-            row.get::<_, u32>(4)?,
-        )))?;
+        let rows = stmt.query_map(params![lod], |row| {
+            Ok((
+                row.get::<_, i32>(0)?,
+                row.get::<_, i32>(1)?,
+                row.get::<_, Vec<u8>>(2)?,
+                row.get::<_, u32>(3)?,
+                row.get::<_, u32>(4)?,
+            ))
+        })?;
 
         let mut chunk_count = 0u32;
         for row in rows {
             let (cx, cy, render_blob, w, h) = row?;
-            if cx < 0 || cy < 0 { continue; }
+            if cx < 0 || cy < 0 {
+                continue;
+            }
             let (cx, cy) = (cx as u32, cy as u32);
             let tiles = decompress_u32(&render_blob, (w * h) as usize)?;
             let img_col_origin = cx * chunk_cells;
@@ -129,10 +143,13 @@ fn main() -> Result<()> {
         }
 
         let out_path = cli.out.join(format!("{}_lod{lod}.png", cli.name));
-        img.save(&out_path).with_context(|| format!("save {}", out_path.display()))?;
+        img.save(&out_path)
+            .with_context(|| format!("save {}", out_path.display()))?;
         println!("{}_lod{lod}.png  ({map_w}×{map_h} px, {chunk_count} chunks, {chunk_cells} cells/chunk)", cli.name);
 
-        if lod == 0 { lod0_img = Some(img); }
+        if lod == 0 {
+            lod0_img = Some(img);
+        }
     }
 
     // Neighborhood semantic crops from LOD 0.
@@ -147,7 +164,7 @@ fn main() -> Result<()> {
         let neighborhoods: &[(&str, f64, f64, f64, f64)] = &[
             ("fidi", 553_200.0, 4_183_300.0, 1_200.0, 900.0),
             ("soma", 552_800.0, 4_181_400.0, 1_200.0, 900.0),
-            ("ggp",  546_200.0, 4_179_800.0, 1_800.0, 900.0),
+            ("ggp", 546_200.0, 4_179_800.0, 1_800.0, 900.0),
         ];
         for &(name, cx, cy, hw, hh) in neighborhoods {
             let (px_cx, px_cy) = utm_to_px(cx, cy);
@@ -159,8 +176,11 @@ fn main() -> Result<()> {
             let y1 = (px_cy + half_h).min(img.height());
             let (w, h) = (x1.saturating_sub(x0), y1.saturating_sub(y0));
             // SF-specific crops fall outside other cities' images; skip them.
-            if w == 0 || h == 0 { continue; }
-            img.view(x0, y0, w, h).to_image()
+            if w == 0 || h == 0 {
+                continue;
+            }
+            img.view(x0, y0, w, h)
+                .to_image()
                 .save(cli.out.join(format!("{name}.png")))?;
             println!("{name}.png  ({w}×{h} px, center UTM ({cx:.0},{cy:.0}))");
         }
@@ -181,21 +201,27 @@ fn main() -> Result<()> {
         fill_atlas_bg(&mut img, &atlas, SemanticClass::Grass, px_per_cell);
 
         let mut stmt = conn.prepare("SELECT cx, cy, render, w, h FROM chunks WHERE lod=?1")?;
-        let rows = stmt.query_map(params![lod], |row| Ok((
-            row.get::<_, i32>(0)?,
-            row.get::<_, i32>(1)?,
-            row.get::<_, Vec<u8>>(2)?,
-            row.get::<_, u32>(3)?,
-            row.get::<_, u32>(4)?,
-        )))?;
+        let rows = stmt.query_map(params![lod], |row| {
+            Ok((
+                row.get::<_, i32>(0)?,
+                row.get::<_, i32>(1)?,
+                row.get::<_, Vec<u8>>(2)?,
+                row.get::<_, u32>(3)?,
+                row.get::<_, u32>(4)?,
+            ))
+        })?;
 
         for row in rows {
             let (cx, cy, render_blob, w, h) = row?;
-            if cx < 0 || cy < 0 { continue; }
+            if cx < 0 || cy < 0 {
+                continue;
+            }
             let (cx, cy) = (cx as u32, cy as u32);
             // Skip chunks outside this export's recomputed grid (guards the row-origin
             // underflow when a grid is taller/wider than SF's).
-            if cx >= nx as u32 || cy >= ny as u32 { continue; }
+            if cx >= nx as u32 || cy >= ny as u32 {
+                continue;
+            }
             let tiles = decompress_u32(&render_blob, (w * h) as usize)?;
             let img_col_origin = cx * chunk_cells * px_per_cell;
             let img_row_origin = (ny as u32 - 1 - cy) * chunk_cells * px_per_cell;
@@ -208,24 +234,32 @@ fn main() -> Result<()> {
                     if dst_x + px_per_cell > map_w || dst_y + px_per_cell > map_h {
                         continue;
                     }
-                    blit_atlas_tile(&mut img, &atlas,
+                    blit_atlas_tile(
+                        &mut img,
+                        &atlas,
                         tile_id_class(tile_id) as u32,
                         tile_id_variant(tile_id) as u32,
-                        dst_x, dst_y, px_per_cell);
+                        dst_x,
+                        dst_y,
+                        px_per_cell,
+                    );
                 }
             }
         }
 
         let out_path = cli.out.join(format!("{}_tiles.png", cli.name));
         img.save(&out_path)?;
-        println!("{}_tiles.png  ({map_w}×{map_h} px, LOD {lod}, {px_per_cell}px/cell atlas render)", cli.name);
+        println!(
+            "{}_tiles.png  ({map_w}×{map_h} px, LOD {lod}, {px_per_cell}px/cell atlas render)",
+            cli.name
+        );
     }
 
     // Neighborhood atlas-tile crops from LOD 0.
     let neighborhoods_tile: &[(&str, f64, f64, f64, f64)] = &[
         ("fidi", 553_200.0, 4_183_300.0, 1_200.0, 900.0),
         ("soma", 552_800.0, 4_181_400.0, 1_200.0, 900.0),
-        ("ggp",  546_200.0, 4_179_800.0, 1_800.0, 900.0),
+        ("ggp", 546_200.0, 4_179_800.0, 1_800.0, 900.0),
     ];
 
     let mpc = cfg.pipeline.meters_per_cell;
@@ -239,9 +273,9 @@ fn main() -> Result<()> {
 
         let chunk_m = cfg.pipeline.chunk_meters;
         let cx_lo = ((x_min - bbox_utm.min_x) / chunk_m).floor() as i32;
-        let cx_hi = ((x_max - bbox_utm.min_x) / chunk_m).ceil()  as i32;
+        let cx_hi = ((x_max - bbox_utm.min_x) / chunk_m).ceil() as i32;
         let cy_lo = ((y_min - bbox_utm.min_y) / chunk_m).floor() as i32;
-        let cy_hi = ((y_max - bbox_utm.min_y) / chunk_m).ceil()  as i32;
+        let cy_hi = ((y_max - bbox_utm.min_y) / chunk_m).ceil() as i32;
 
         let cx_lo = (cx_lo.max(0) as u32).min((nx - 1) as u32);
         let cx_hi = (cx_hi.max(0) as u32).min((nx - 1) as u32);
@@ -265,17 +299,21 @@ fn main() -> Result<()> {
         let mut stmt = conn.prepare(
             "SELECT cx, cy, render, w, h FROM chunks WHERE lod=0 AND cx>=?1 AND cx<=?2 AND cy>=?3 AND cy<=?4"
         )?;
-        let rows = stmt.query_map(params![cx_lo, cx_hi, cy_lo, cy_hi], |row| Ok((
-            row.get::<_, i32>(0)?,
-            row.get::<_, i32>(1)?,
-            row.get::<_, Vec<u8>>(2)?,
-            row.get::<_, u32>(3)?,
-            row.get::<_, u32>(4)?,
-        )))?;
+        let rows = stmt.query_map(params![cx_lo, cx_hi, cy_lo, cy_hi], |row| {
+            Ok((
+                row.get::<_, i32>(0)?,
+                row.get::<_, i32>(1)?,
+                row.get::<_, Vec<u8>>(2)?,
+                row.get::<_, u32>(3)?,
+                row.get::<_, u32>(4)?,
+            ))
+        })?;
 
         for row in rows {
             let (cx, cy, render_blob, w, h) = row?;
-            if cx < 0 || cy < 0 { continue; }
+            if cx < 0 || cy < 0 {
+                continue;
+            }
             let (cx, cy) = (cx as u32, cy as u32);
             let tiles = decompress_u32(&render_blob, (w * h) as usize)?;
             let chunk_col = cx - cx_lo;
@@ -286,27 +324,30 @@ fn main() -> Result<()> {
             for cell_row in 0..h {
                 for cell_col in 0..w {
                     let tile_id = tiles[(cell_row * w + cell_col) as usize];
-                    blit_atlas_tile(&mut img, &atlas,
+                    blit_atlas_tile(
+                        &mut img,
+                        &atlas,
                         tile_id_class(tile_id) as u32,
                         tile_id_variant(tile_id) as u32,
                         img_col_origin + cell_col * px_per_cell,
                         img_row_origin + cell_row * px_per_cell,
-                        px_per_cell);
+                        px_per_cell,
+                    );
                 }
             }
         }
 
         // Crop to exact UTM bounds (trim partial-chunk edges).
         let cell_off_x = ((x_min - bbox_utm.min_x - cx_lo as f64 * chunk_m) / mpc).round() as u32;
-        let cell_off_y_from_top = (((cy_hi as f64 + 1.0) * chunk_m + bbox_utm.min_y - y_max) / mpc)
-            .round() as u32;
+        let cell_off_y_from_top =
+            (((cy_hi as f64 + 1.0) * chunk_m + bbox_utm.min_y - y_max) / mpc).round() as u32;
         let cells_wide = ((x_max - x_min) / mpc).round() as u32;
         let cells_tall = ((y_max - y_min) / mpc).round() as u32;
 
         let px0 = (cell_off_x * px_per_cell).min(img_w);
         let py0 = (cell_off_y_from_top * px_per_cell).min(img_h);
-        let pw  = (cells_wide * px_per_cell).min(img_w - px0);
-        let ph  = (cells_tall * px_per_cell).min(img_h - py0);
+        let pw = (cells_wide * px_per_cell).min(img_w - px0);
+        let ph = (cells_tall * px_per_cell).min(img_h - py0);
 
         let out_img = if pw > 0 && ph > 0 {
             img.view(px0, py0, pw, ph).to_image()
@@ -316,8 +357,11 @@ fn main() -> Result<()> {
 
         let out_path = cli.out.join(format!("{name}_tiles.png"));
         out_img.save(&out_path)?;
-        println!("{name}_tiles.png  ({}×{} px, LOD 0, {px_per_cell}px/cell atlas render)",
-            out_img.width(), out_img.height());
+        println!(
+            "{name}_tiles.png  ({}×{} px, LOD 0, {px_per_cell}px/cell atlas render)",
+            out_img.width(),
+            out_img.height()
+        );
     }
 
     // Full 32px/cell detail views with MX modular buildings + oblique facades,
@@ -373,7 +417,8 @@ fn blit_atlas_tile(
             let src_dy = dy * ATLAS_TILE / px_size;
             let px_x = dst_x + dx;
             let px_y = dst_y + dy;
-            if px_x < dst_w && px_y < dst_h
+            if px_x < dst_w
+                && px_y < dst_h
                 && atlas_x + src_dx < atlas.width()
                 && atlas_y + src_dy < atlas.height()
             {
@@ -430,9 +475,7 @@ fn render_full_city(
 
     let path = out.join("sf_city.png");
     full.save(&path)?;
-    println!(
-        "sf_city.png  ({full_w}×{full_h} px, {scale}px/cell, {done} chunks, MX buildings)"
-    );
+    println!("sf_city.png  ({full_w}×{full_h} px, {scale}px/cell, {done} chunks, MX buildings)");
     Ok(())
 }
 
@@ -443,6 +486,7 @@ fn fill_atlas_bg(dst: &mut RgbImage, atlas: &DynamicImage, class: SemanticClass,
     let p = atlas.get_pixel(atlas_x + 16, atlas_y + 16);
     let bg = image::Rgb([p[0], p[1], p[2]]);
     let _ = px_size;
-    for px in dst.pixels_mut() { *px = bg; }
+    for px in dst.pixels_mut() {
+        *px = bg;
+    }
 }
-

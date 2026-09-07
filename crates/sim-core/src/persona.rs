@@ -13,10 +13,10 @@ use crate::geo::{Cell, TilesDb};
 use crate::pums::PumsRecord;
 use crate::religion;
 use rand::Rng;
-use std::sync::Arc;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 use sha2::{Digest, Sha256};
+use std::sync::Arc;
 
 pub fn agent_seed(sim_seed: u64, idx: u32) -> u64 {
     let mut h = Sha256::new();
@@ -91,7 +91,15 @@ pub fn build_population_with(
         let rec = records[ri].clone();
         let aseed = agent_seed(seed, idx as u32);
         let mut prng = ChaCha8Rng::seed_from_u64(aseed);
-        let agent = make_agent(idx as u32, rec, aseed, &mut prng, tiles, &income_cutoffs, &profile);
+        let agent = make_agent(
+            idx as u32,
+            rec,
+            aseed,
+            &mut prng,
+            tiles,
+            &income_cutoffs,
+            &profile,
+        );
         agents.push(agent);
     }
     Population {
@@ -148,7 +156,17 @@ fn make_agent(
     let name = make_name(&rec, rng, profile);
     let occupation = occupation_label(rec.occp, rec.esr);
     let neighborhood = profile.neighborhood(rec.puma);
-    let mut persona = build_persona_prose(&rec, &name, &occupation, &neighborhood, religion, religiosity, homeowner, &values, profile);
+    let mut persona = build_persona_prose(
+        &rec,
+        &name,
+        &occupation,
+        &neighborhood,
+        religion,
+        religiosity,
+        homeowner,
+        &values,
+        profile,
+    );
 
     let (home, work) = if let Some(t) = tiles {
         let home = t.sample_residential_cell(profile.centroid(rec.puma), rng);
@@ -225,7 +243,11 @@ fn join_and(items: &[String]) -> String {
         0 => String::new(),
         1 => items[0].clone(),
         2 => format!("{} and {}", items[0], items[1]),
-        _ => format!("{}, and {}", items[..items.len() - 1].join(", "), items[items.len() - 1]),
+        _ => format!(
+            "{}, and {}",
+            items[..items.len() - 1].join(", "),
+            items[items.len() - 1]
+        ),
     }
 }
 
@@ -354,11 +376,23 @@ fn build_persona_prose(
     values: &ValueVector,
     profile: &CityProfile,
 ) -> String {
-    let tenure = if homeowner { "owns their home" } else { "rents" };
+    let tenure = if homeowner {
+        "owns their home"
+    } else {
+        "rents"
+    };
     let relig = if religiosity < 0.15 {
         "not religious".to_string()
     } else {
-        format!("{} ({})", religion.label(), if religiosity > 0.55 { "observant" } else { "somewhat observant" })
+        format!(
+            "{} ({})",
+            religion.label(),
+            if religiosity > 0.55 {
+                "observant"
+            } else {
+                "somewhat observant"
+            }
+        )
     };
     let edu = match rec.educ() {
         "lt_hs" => "did not finish high school",
@@ -441,7 +475,12 @@ pub fn occupation_label(occp: u32, esr: u8) -> String {
     s.to_string()
 }
 
-fn sample_work_cell(tiles: &TilesDb, rec: &PumsRecord, rng: &mut impl Rng, profile: &CityProfile) -> Cell {
+fn sample_work_cell(
+    tiles: &TilesDb,
+    rec: &PumsRecord,
+    rng: &mut impl Rng,
+    profile: &CityProfile,
+) -> Cell {
     // Most jobs concentrate in the CBD; the rest stay near the home PUMA.
     if rng.gen::<f64>() < profile.work.downtown_share {
         tiles.sample_residential_cell(profile.centroid(profile.work.downtown_puma), rng)
@@ -475,16 +514,66 @@ fn make_name(rec: &PumsRecord, rng: &mut impl Rng, profile: &CityProfile) -> Str
     }
 }
 
-const FIRST_M_IN: [&str; 15] = ["Aarav", "Rohan", "Aditya", "Vikram", "Rahul", "Amit", "Suresh", "Pradeep", "Rajesh", "Vijay", "Anand", "Deepak", "Karan", "Sanjay", "Arjun"];
-const FIRST_F_IN: [&str; 15] = ["Priya", "Ananya", "Pooja", "Sunita", "Lakshmi", "Kavita", "Deepa", "Neha", "Anita", "Sita", "Meena", "Ritu", "Shweta", "Divya", "Aarti"];
-const LAST_IN: [&str; 16] = ["Sharma", "Verma", "Patel", "Singh", "Kumar", "Gupta", "Joshi", "Rao", "Nair", "Banerjee", "Chatterjee", "Deshmukh", "Kulkarni", "Mehta", "Shah", "Reddy"];
+const FIRST_M_IN: [&str; 15] = [
+    "Aarav", "Rohan", "Aditya", "Vikram", "Rahul", "Amit", "Suresh", "Pradeep", "Rajesh", "Vijay",
+    "Anand", "Deepak", "Karan", "Sanjay", "Arjun",
+];
+const FIRST_F_IN: [&str; 15] = [
+    "Priya", "Ananya", "Pooja", "Sunita", "Lakshmi", "Kavita", "Deepa", "Neha", "Anita", "Sita",
+    "Meena", "Ritu", "Shweta", "Divya", "Aarti",
+];
+const LAST_IN: [&str; 16] = [
+    "Sharma",
+    "Verma",
+    "Patel",
+    "Singh",
+    "Kumar",
+    "Gupta",
+    "Joshi",
+    "Rao",
+    "Nair",
+    "Banerjee",
+    "Chatterjee",
+    "Deshmukh",
+    "Kulkarni",
+    "Mehta",
+    "Shah",
+    "Reddy",
+];
 
-const FIRST_M: [&str; 12] = ["James", "Wei", "Carlos", "David", "Miguel", "Jamal", "Kevin", "Daniel", "Hassan", "Raj", "Tomás", "Andre"];
-const FIRST_F: [&str; 12] = ["Maria", "Mei", "Sofia", "Aisha", "Jennifer", "Priya", "Keisha", "Elena", "Grace", "Fatima", "Lucia", "Nora"];
-const LAST_GEN: [&str; 10] = ["Smith", "Johnson", "Miller", "O'Brien", "Goldberg", "Anderson", "Murphy", "Clark", "Reed", "Walsh"];
-const LAST_HISP: [&str; 8] = ["Garcia", "Hernandez", "Lopez", "Gonzalez", "Rodriguez", "Ramirez", "Flores", "Cruz"];
-const LAST_ASIAN: [&str; 8] = ["Chen", "Wong", "Nguyen", "Kim", "Lee", "Patel", "Tanaka", "Singh"];
-const LAST_BLACK: [&str; 6] = ["Washington", "Jefferson", "Brooks", "Coleman", "Banks", "Carter"];
+const FIRST_M: [&str; 12] = [
+    "James", "Wei", "Carlos", "David", "Miguel", "Jamal", "Kevin", "Daniel", "Hassan", "Raj",
+    "Tomás", "Andre",
+];
+const FIRST_F: [&str; 12] = [
+    "Maria", "Mei", "Sofia", "Aisha", "Jennifer", "Priya", "Keisha", "Elena", "Grace", "Fatima",
+    "Lucia", "Nora",
+];
+const LAST_GEN: [&str; 10] = [
+    "Smith", "Johnson", "Miller", "O'Brien", "Goldberg", "Anderson", "Murphy", "Clark", "Reed",
+    "Walsh",
+];
+const LAST_HISP: [&str; 8] = [
+    "Garcia",
+    "Hernandez",
+    "Lopez",
+    "Gonzalez",
+    "Rodriguez",
+    "Ramirez",
+    "Flores",
+    "Cruz",
+];
+const LAST_ASIAN: [&str; 8] = [
+    "Chen", "Wong", "Nguyen", "Kim", "Lee", "Patel", "Tanaka", "Singh",
+];
+const LAST_BLACK: [&str; 6] = [
+    "Washington",
+    "Jefferson",
+    "Brooks",
+    "Coleman",
+    "Banks",
+    "Carter",
+];
 
 #[cfg(test)]
 mod tests {
@@ -493,16 +582,40 @@ mod tests {
 
     fn rec(age: u8, hisp: u16, rac1p: u8, schl: u8, povpip: f64, cit: u8) -> PumsRecord {
         PumsRecord {
-            serialno: "x".into(), sporder: 1, pwgtp: 12.0, age, sex: if age % 2 == 0 { 1 } else { 2 },
-            rac1p, hisp, schl, pincp: povpip * 0.6, povpip, occp: 1020, cow: 1, esr: 1, cit, mar: 5,
-            nativity: 1, puma: 7510, adjinc: 1.0,
+            serialno: "x".into(),
+            sporder: 1,
+            pwgtp: 12.0,
+            age,
+            sex: if age % 2 == 0 { 1 } else { 2 },
+            rac1p,
+            hisp,
+            schl,
+            pincp: povpip * 0.6,
+            povpip,
+            occp: 1020,
+            cow: 1,
+            esr: 1,
+            cit,
+            mar: 5,
+            nativity: 1,
+            puma: 7510,
+            adjinc: 1.0,
         }
     }
 
     #[test]
     fn deterministic_population() {
         let recs: Vec<PumsRecord> = (0..500)
-            .map(|i| rec(20 + (i % 60) as u8, if i % 4 == 0 { 2 } else { 1 }, 1 + (i % 6) as u8, 16 + (i % 8) as u8, 40000.0 + (i as f64) * 500.0, 1))
+            .map(|i| {
+                rec(
+                    20 + (i % 60) as u8,
+                    if i % 4 == 0 { 2 } else { 1 },
+                    1 + (i % 6) as u8,
+                    16 + (i % 8) as u8,
+                    40000.0 + (i as f64) * 500.0,
+                    1,
+                )
+            })
             .collect();
         let p1 = build_population(&recs, 200, 42, None);
         let p2 = build_population(&recs, 200, 42, None);
@@ -515,19 +628,36 @@ mod tests {
         }
         // different seed -> different draw
         let p3 = build_population(&recs, 200, 7, None);
-        let same = p1.agents.iter().zip(p3.agents.iter()).filter(|(a, b)| a.rec.serialno == b.rec.serialno && a.name == b.name).count();
+        let same = p1
+            .agents
+            .iter()
+            .zip(p3.agents.iter())
+            .filter(|(a, b)| a.rec.serialno == b.rec.serialno && a.name == b.name)
+            .count();
         assert!(same < 200);
     }
 
     #[test]
     fn sf_is_progressive_on_average() {
         let recs: Vec<PumsRecord> = (0..1000)
-            .map(|i| rec(18 + (i % 70) as u8, if i % 5 == 0 { 2 } else { 1 }, 1 + (i % 6) as u8, 16 + (i % 9) as u8, 30000.0 + (i as f64) * 300.0, 1))
+            .map(|i| {
+                rec(
+                    18 + (i % 70) as u8,
+                    if i % 5 == 0 { 2 } else { 1 },
+                    1 + (i % 6) as u8,
+                    16 + (i % 9) as u8,
+                    30000.0 + (i as f64) * 300.0,
+                    1,
+                )
+            })
             .collect();
         let p = build_population(&recs, 800, 42, None);
         let mean_social: f64 = p.agents.iter().map(|a| a.values.social).sum::<f64>() / 800.0;
         let mean_econ: f64 = p.agents.iter().map(|a| a.values.economic).sum::<f64>() / 800.0;
-        assert!(mean_social < -0.2, "mean social {mean_social} should be progressive");
+        assert!(
+            mean_social < -0.2,
+            "mean social {mean_social} should be progressive"
+        );
         assert!(mean_econ < -0.1, "mean econ {mean_econ} should be left");
     }
 
@@ -546,17 +676,40 @@ mod tests {
             let schl = 10 + (i % 15) as u8;
             let w = 5.0 + (i % 30) as f64; // unequal weights
             recs.push(PumsRecord {
-                serialno: format!("r{i}"), sporder: 1, pwgtp: w, age, sex: 1 + (i % 2) as u8,
-                rac1p, hisp, schl, pincp: 30000.0, povpip: 50.0 + (i % 400) as f64, occp: 1020,
-                cow: 1, esr: 1, cit: if i % 9 == 0 { 5 } else { 1 }, mar: 5, nativity: 1,
-                puma: SF_PUMAS[(i % 8) as usize], adjinc: 1.0,
+                serialno: format!("r{i}"),
+                sporder: 1,
+                pwgtp: w,
+                age,
+                sex: 1 + (i % 2) as u8,
+                rac1p,
+                hisp,
+                schl,
+                pincp: 30000.0,
+                povpip: 50.0 + (i % 400) as f64,
+                occp: 1020,
+                cow: 1,
+                esr: 1,
+                cit: if i % 9 == 0 { 5 } else { 1 },
+                mar: 5,
+                nativity: 1,
+                puma: SF_PUMAS[(i % 8) as usize],
+                adjinc: 1.0,
             });
         }
-        let weighted_marg = |race_fn: &dyn Fn(&PumsRecord) -> String, items: &[PumsRecord], wt: &dyn Fn(&PumsRecord) -> f64| -> HashMap<String, f64> {
+        let weighted_marg = |race_fn: &dyn Fn(&PumsRecord) -> String,
+                             items: &[PumsRecord],
+                             wt: &dyn Fn(&PumsRecord) -> f64|
+         -> HashMap<String, f64> {
             let mut m: HashMap<String, f64> = HashMap::new();
             let mut tot = 0.0;
-            for r in items { let w = wt(r); *m.entry(race_fn(r)).or_default() += w; tot += w; }
-            for v in m.values_mut() { *v /= tot.max(1e-9); }
+            for r in items {
+                let w = wt(r);
+                *m.entry(race_fn(r)).or_default() += w;
+                tot += w;
+            }
+            for v in m.values_mut() {
+                *v /= tot.max(1e-9);
+            }
             m
         };
         let pop = build_population(&recs, 1500, 99, None);
@@ -567,9 +720,15 @@ mod tests {
         let mut keys: std::collections::HashSet<&String> = target.keys().collect();
         keys.extend(emp.keys());
         let mut tv = 0.0;
-        for k in keys { tv += (target.get(k).copied().unwrap_or(0.0) - emp.get(k).copied().unwrap_or(0.0)).abs(); }
+        for k in keys {
+            tv +=
+                (target.get(k).copied().unwrap_or(0.0) - emp.get(k).copied().unwrap_or(0.0)).abs();
+        }
         tv /= 2.0;
-        assert!(tv < 0.05, "race_eth marginal TV distance {tv} exceeds tolerance");
+        assert!(
+            tv < 0.05,
+            "race_eth marginal TV distance {tv} exceeds tolerance"
+        );
     }
 
     #[test]

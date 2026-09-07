@@ -59,9 +59,16 @@ mod tests {
 
     fn vv() -> ValueVector {
         ValueVector {
-            economic: -0.3, social: -0.4, trust: 0.0, change: 0.1,
-            s_housing: 0.7, s_crime: 0.5, s_homeless: 0.6, s_cost: 0.7,
-            s_environment: 0.6, s_immigration: 0.3,
+            economic: -0.3,
+            social: -0.4,
+            trust: 0.0,
+            change: 0.1,
+            s_housing: 0.7,
+            s_crime: 0.5,
+            s_homeless: 0.6,
+            s_cost: 0.7,
+            s_environment: 0.6,
+            s_immigration: 0.3,
         }
     }
 
@@ -70,8 +77,22 @@ mod tests {
             tick: 5,
             clock_secs: 3600,
             agents: vec![
-                AgentState { id: 1, pos: Cell::new(10, 20), action: "walk".into(), values: vv(), alive: true, memory: vec!["saw a protest".into()] },
-                AgentState { id: 0, pos: Cell::new(3, 4), action: "idle".into(), values: vv(), alive: true, memory: vec![] },
+                AgentState {
+                    id: 1,
+                    pos: Cell::new(10, 20),
+                    action: "walk".into(),
+                    values: vv(),
+                    alive: true,
+                    memory: vec!["saw a protest".into()],
+                },
+                AgentState {
+                    id: 0,
+                    pos: Cell::new(3, 4),
+                    action: "idle".into(),
+                    values: vv(),
+                    alive: true,
+                    memory: vec![],
+                },
             ],
             relationships: vec![(1, 0, 0.5), (0, 1, 0.3)],
         }

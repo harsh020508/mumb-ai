@@ -7,7 +7,7 @@ and the synthetic electorate's verdict accumulates across the city as green
 
 This is the pixel-art frontend: whole-city tile renders with sprites walking
 the roads. It talks directly to the deployed backend
-(`https://sf-digital-twin-tp.fly.dev`) — see `../INTEGRATION.md`.
+(`https://mumb-ai.fly.dev`) — see `../INTEGRATION.md`.
 
 Glassmorphic chrome over a painted map. The palette is sampled from the project's
 pixel-art palette image (warm sand land, pale-blue bay, violet accent, green/red

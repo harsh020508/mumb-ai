@@ -18,7 +18,7 @@ use topo::apply_topography;
 use types::{ChunkCoord, Grid, SemanticClass};
 
 #[derive(Parser, Debug)]
-    #[command(name = "pipeline", about = "mumb-ai RPG tilemap pipeline")]
+#[command(name = "pipeline", about = "mumb-ai RPG tilemap pipeline")]
 struct Cli {
     /// Path to pipeline.toml config file
     #[arg(short, long, default_value = "config/pipeline.toml")]
@@ -85,20 +85,23 @@ fn main() -> Result<()> {
     // Pre-sample elevation grids serially: DemReader contains raw Proj pointers
     // (*mut PJconsts) which are !Send, so it cannot be shared across rayon threads.
     let elevations: Vec<Grid<f32>> = match &maybe_dem {
-        Some(dem) => chunk_coords.iter().map(|&(cx, cy)| {
-            let (ox, oy) = bbox_utm.chunk_origin(cx, cy, cfg.pipeline.chunk_meters);
-            dem.sample_grid_utm(ox, oy, cells, cells, mpc)
-        }).collect(),
-        None => chunk_coords.iter()
+        Some(dem) => chunk_coords
+            .iter()
+            .map(|&(cx, cy)| {
+                let (ox, oy) = bbox_utm.chunk_origin(cx, cy, cfg.pipeline.chunk_meters);
+                dem.sample_grid_utm(ox, oy, cells, cells, mpc)
+            })
+            .collect(),
+        None => chunk_coords
+            .iter()
             .map(|_| Grid::filled(cells, cells, 0.0_f32))
             .collect(),
     };
     drop(maybe_dem);
 
     // Extract building polys once for apply_topography (shared read-only across threads).
-    let building_polys: Vec<geo::Polygon<f64>> = features.buildings.iter()
-        .map(|b| b.poly.clone())
-        .collect();
+    let building_polys: Vec<geo::Polygon<f64>> =
+        features.buildings.iter().map(|b| b.poly.clone()).collect();
 
     // Phase 8a: rasterize every chunk's semantic grid in parallel.
     let mut semantics: Vec<Grid<SemanticClass>> = chunk_coords
@@ -114,8 +117,13 @@ fn main() -> Result<()> {
     // harbors, the ocean) that OSM tags inconsistently as coastline or as huge water
     // multipolygons that get clipped open at the bbox and never rasterize.
     flood_fill_water(
-        &mut semantics, &elevations, cfg.pipeline.water_max_elev_m,
-        &chunk_coords, nx, ny, cells,
+        &mut semantics,
+        &elevations,
+        cfg.pipeline.water_max_elev_m,
+        &chunk_coords,
+        nx,
+        ny,
+        cells,
     );
 
     // Phase 8b': reclaim "green islands" — patches of natural ground (parks,
@@ -144,7 +152,9 @@ fn main() -> Result<()> {
                         let filled = (pct / 5).min(20) as usize;
                         let bar = "#".repeat(filled) + &"-".repeat(20 - filled);
                         if tty {
-                            eprint!("\r  building map [{bar}] {pct:3}%  ({count}/{total_writes} tiles)");
+                            eprint!(
+                                "\r  building map [{bar}] {pct:3}%  ({count}/{total_writes} tiles)"
+                            );
                             let _ = std::io::stderr().flush();
                         } else if pct % 10 == 0 {
                             eprintln!("  building map {pct}%  ({count}/{total_writes} tiles)");
@@ -158,28 +168,35 @@ fn main() -> Result<()> {
             count
         });
 
-        semantics.par_iter_mut().enumerate().for_each_with(
-            result_tx,
-            |tx, (idx, semantic)| {
+        semantics
+            .par_iter_mut()
+            .enumerate()
+            .for_each_with(result_tx, |tx, (idx, semantic)| {
                 let (cx, cy) = chunk_coords[idx];
                 let (ox, oy) = bbox_utm.chunk_origin(cx, cy, cfg.pipeline.chunk_meters);
                 let mut elevation = elevations[idx].clone();
                 apply_topography(
-                    semantic, &mut elevation, &building_polys,
-                    ox, oy, mpc, &elev_cfg,
+                    semantic,
+                    &mut elevation,
+                    &building_polys,
+                    ox,
+                    oy,
+                    mpc,
+                    &elev_cfg,
                 );
 
                 // Phase 7: slope-aware collision.
                 let rise = dem::compute_max_rise(&elevation);
                 let render0 = semantic_to_render(semantic);
-                let coll0 = semantic_to_collision(
-                    semantic, &rise, building_blocked, threshold_m,
-                );
+                let coll0 = semantic_to_collision(semantic, &rise, building_blocked, threshold_m);
 
                 tx.send(ChunkWrite {
-                    coord: ChunkCoord { cx, cy }, lod: 0,
-                    render: render0, collision: coll0.clone(),
-                }).expect("send lod0");
+                    coord: ChunkCoord { cx, cy },
+                    lod: 0,
+                    render: render0,
+                    collision: coll0.clone(),
+                })
+                .expect("send lod0");
 
                 for lod_level in 1..lod_levels {
                     let factor = 1u32 << lod_level;
@@ -187,12 +204,14 @@ fn main() -> Result<()> {
                     let render = semantic_to_render(&sem_ds);
                     let coll = lod::downsample_collision(&coll0, factor);
                     tx.send(ChunkWrite {
-                        coord: ChunkCoord { cx, cy }, lod: lod_level,
-                        render, collision: coll,
-                    }).expect("send lod");
+                        coord: ChunkCoord { cx, cy },
+                        lod: lod_level,
+                        render,
+                        collision: coll,
+                    })
+                    .expect("send lod");
                 }
-            },
-        );
+            });
 
         writer_thread.join().expect("writer thread panicked")
     });
@@ -205,7 +224,14 @@ fn main() -> Result<()> {
     );
 
     // Phase 9C: insert building records into DB.
-    insert_building_records(&db_path, &features, &chunk_coords, &bbox_utm, cfg.pipeline.chunk_meters, mpc)?;
+    insert_building_records(
+        &db_path,
+        &features,
+        &chunk_coords,
+        &bbox_utm,
+        cfg.pipeline.chunk_meters,
+        mpc,
+    )?;
 
     write_mapping_json(&cfg)?;
 
@@ -255,7 +281,10 @@ fn load_dem(cfg: &Config) -> Option<DemReader> {
 /// Points known to be on land (one per landmass), in projected UTM meters: from
 /// config `land_refs` + `land_ref` (WGS-84) if given, else the bbox centre.
 fn land_refs_utm(cfg: &Config, bbox: &config::BboxUtm) -> Vec<(f64, f64)> {
-    let center = ((bbox.min_x + bbox.max_x) / 2.0, (bbox.min_y + bbox.max_y) / 2.0);
+    let center = (
+        (bbox.min_x + bbox.max_x) / 2.0,
+        (bbox.min_y + bbox.max_y) / 2.0,
+    );
     let mut refs: Vec<config::LandRefWgs84> = cfg.land_refs.clone();
     if let Some(lr) = &cfg.land_ref {
         refs.push(*lr);
@@ -274,7 +303,11 @@ fn land_refs_utm(cfg: &Config, bbox: &config::BboxUtm) -> Vec<(f64, f64)> {
         .iter()
         .filter_map(|lr| crs::wgs84_to_utm(&proj, lr.lon, lr.lat).ok())
         .collect();
-    if out.is_empty() { vec![center] } else { out }
+    if out.is_empty() {
+        vec![center]
+    } else {
+        out
+    }
 }
 
 fn load_osm_if_present(cfg: &Config, bbox: &config::BboxUtm) -> FeatureIndex {
@@ -502,7 +535,7 @@ fn reclaim_green_water_islands(
                             }
                         }
                         Some(SemanticClass::Water) => water_border += 1,
-                        None => {} // bbox edge — neutral
+                        None => {}                  // bbox edge — neutral
                         Some(_) => dev_border += 1, // road / building / path / plaza
                     }
                 }
@@ -556,9 +589,11 @@ fn insert_building_records(
                 None => continue,
             };
             let cx_lo = (((bbox.min().x - bbox_utm.min_x) / chunk_meters).floor() as i32).max(0);
-            let cx_hi = (((bbox.max().x - bbox_utm.min_x) / chunk_meters).floor() as i32).min(nx - 1);
+            let cx_hi =
+                (((bbox.max().x - bbox_utm.min_x) / chunk_meters).floor() as i32).min(nx - 1);
             let cy_lo = (((bbox.min().y - bbox_utm.min_y) / chunk_meters).floor() as i32).max(0);
-            let cy_hi = (((bbox.max().y - bbox_utm.min_y) / chunk_meters).floor() as i32).min(ny - 1);
+            let cy_hi =
+                (((bbox.max().y - bbox_utm.min_y) / chunk_meters).floor() as i32).min(ny - 1);
             if cx_hi < cx_lo || cy_hi < cy_lo {
                 continue;
             }
@@ -601,20 +636,20 @@ fn write_mapping_json(cfg: &Config) -> Result<()> {
     use sim_maps::autotile::VARIANT_COUNT;
 
     let classes: &[(&str, u8)] = &[
-        ("Grass",         0),
-        ("ParkGrass",     1),
-        ("Sand",          2),
-        ("Path",          3),
-        ("Sidewalk",      4),
-        ("Road",          5),
-        ("Stairs",        6),
-        ("CliffFace",     7),
+        ("Grass", 0),
+        ("ParkGrass", 1),
+        ("Sand", 2),
+        ("Path", 3),
+        ("Sidewalk", 4),
+        ("Road", 5),
+        ("Stairs", 6),
+        ("CliffFace", 7),
         ("BuildingFloor", 8),
-        ("BuildingWall",  9),
-        ("Water",        10),
-        ("Plaza",        11),
-        ("Shoreline",    12),
-        ("BuildingMid",  13),
+        ("BuildingWall", 9),
+        ("Water", 10),
+        ("Plaza", 11),
+        ("Shoreline", 12),
+        ("BuildingMid", 13),
         ("BuildingTall", 14),
     ];
 
@@ -643,6 +678,10 @@ fn write_mapping_json(cfg: &Config) -> Result<()> {
 
     let json_path = &cfg.paths.mapping_json;
     std::fs::write(json_path, serde_json::to_string_pretty(&doc)?)?;
-    info!("mapping.json written ({} tile entries) → {}", tiles.len(), json_path.display());
+    info!(
+        "mapping.json written ({} tile entries) → {}",
+        tiles.len(),
+        json_path.display()
+    );
     Ok(())
 }

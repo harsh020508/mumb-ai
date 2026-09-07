@@ -212,7 +212,9 @@ pub fn load_csv(path: &str, pumas: &[u32]) -> Result<Vec<PumsRecord>> {
         });
     }
     if out.is_empty() {
-        return Err(anyhow!("no PUMS records loaded from {path} for pumas {pumas:?}"));
+        return Err(anyhow!(
+            "no PUMS records loaded from {path} for pumas {pumas:?}"
+        ));
     }
     Ok(out)
 }

@@ -25,6 +25,8 @@ COPY server_tiles ./server_tiles
 COPY data/cities ./data/cities
 COPY data/news ./data/news
 COPY data/*.csv ./data/
+COPY frontend ./frontend
+COPY config ./config
 ENV PORT=8080 \
     TILES_DB=server_tiles/mumbai.db \
     RUST_LOG=info

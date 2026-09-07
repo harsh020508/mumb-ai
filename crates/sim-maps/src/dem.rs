@@ -8,7 +8,6 @@
 /// Assumed DEM CRS: EPSG:4326 (WGS-84 geographic, lon/lat).
 /// USGS 3DEP 1/3 arc-second and 1 m products use this CRS.
 /// If a different source DEM is used, override source_crs in DemReader::from_file.
-
 use std::io::BufReader;
 use std::path::Path;
 
@@ -58,10 +57,9 @@ impl DemReader {
     /// Supports Float32, Float64, Int16, UInt16, Int32 pixel formats.
     /// `utm_epsg` is the pipeline's projected CRS; sampling reprojects UTM→WGS-84.
     pub fn from_file(path: &Path, utm_epsg: &str) -> Result<Self> {
-        let file = std::fs::File::open(path)
-            .with_context(|| format!("open DEM: {}", path.display()))?;
-        let mut dec = Decoder::new(BufReader::new(file))
-            .context("init TIFF decoder")?;
+        let file =
+            std::fs::File::open(path).with_context(|| format!("open DEM: {}", path.display()))?;
+        let mut dec = Decoder::new(BufReader::new(file)).context("init TIFF decoder")?;
 
         let (width, height) = dec.dimensions().context("DEM dimensions")?;
 
@@ -105,7 +103,13 @@ impl DemReader {
                 .with_context(|| format!("build {utm_epsg}→WGS84 projector"))?,
         );
 
-        Ok(Self { data, width, height, transform, utm_to_dem })
+        Ok(Self {
+            data,
+            width,
+            height,
+            transform,
+            utm_to_dem,
+        })
     }
 
     /// Construct a synthetic DEM for testing.
@@ -131,7 +135,12 @@ impl DemReader {
             data,
             width,
             height,
-            transform: GeoTransform { x_origin, y_origin, pixel_width, pixel_height },
+            transform: GeoTransform {
+                x_origin,
+                y_origin,
+                pixel_width,
+                pixel_height,
+            },
             utm_to_dem: None,
         }
     }
@@ -220,7 +229,11 @@ impl DemReader {
     #[inline]
     fn pixel_clamped(&self, col: u32, row: u32) -> f32 {
         let v = self.data[(row * self.width + col) as usize];
-        if v < NODATA_THRESHOLD { 0.0 } else { v }
+        if v < NODATA_THRESHOLD {
+            0.0
+        } else {
+            v
+        }
     }
 }
 
@@ -232,7 +245,10 @@ fn decode_to_f32(result: DecodingResult) -> Result<Vec<f32>> {
         DecodingResult::U16(v) => Ok(v.into_iter().map(|x| x as f32).collect()),
         DecodingResult::I32(v) => Ok(v.into_iter().map(|x| x as f32).collect()),
         DecodingResult::U32(v) => Ok(v.into_iter().map(|x| x as f32).collect()),
-        other => bail!("unsupported DEM pixel format: {:?}", std::mem::discriminant(&other)),
+        other => bail!(
+            "unsupported DEM pixel format: {:?}",
+            std::mem::discriminant(&other)
+        ),
     }
 }
 
@@ -293,5 +309,9 @@ pub fn average_elevation(
             count += 1;
         }
     }
-    if count == 0 { 0.0 } else { (sum / count as f64) as f32 }
+    if count == 0 {
+        0.0
+    } else {
+        (sum / count as f64) as f32
+    }
 }

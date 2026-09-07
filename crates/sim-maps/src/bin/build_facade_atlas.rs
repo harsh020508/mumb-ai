@@ -20,7 +20,6 @@
 /// See CREDITS.md for attribution.
 ///
 /// Usage: cargo run --release --bin build_facade_atlas [-- [MX_32x32_DIR]]
-
 use anyhow::{Context, Result};
 use image::{DynamicImage, GenericImage, GenericImageView, RgbaImage};
 use std::path::PathBuf;
@@ -50,7 +49,11 @@ fn main() -> Result<()> {
     } else {
         home.join("Downloads/modernexteriors-win/Modern_Exteriors_32x32")
     };
-    anyhow::ensure!(mx_dir.exists(), "MX 32x32 dir not found: {}", mx_dir.display());
+    anyhow::ensure!(
+        mx_dir.exists(),
+        "MX 32x32 dir not found: {}",
+        mx_dir.display()
+    );
 
     // Pre-composed Middle_Floor bays (224×128), identical layout per colour.
     // Window centred at x=24; cornice at y=0, window y=40/68, base y=100.
@@ -94,7 +97,9 @@ fn main() -> Result<()> {
     }
 
     std::fs::create_dir_all("assets").context("create assets/")?;
-    atlas.save("assets/facade_atlas.png").context("save facade_atlas.png")?;
+    atlas
+        .save("assets/facade_atlas.png")
+        .context("save facade_atlas.png")?;
     println!(
         "facade_atlas.png written: {}×{} px (3 wall colours × 6 slots + 4 roof colours, MX-sourced)",
         COLS * TS,
@@ -131,8 +136,14 @@ fn build_props_atlas(mx_dir: &std::path::Path) -> Result<()> {
         }
         println!("  prop col {i} — {name} ({tw}×{th})");
     }
-    props.save("assets/props_atlas.png").context("save props_atlas.png")?;
-    println!("props_atlas.png written: {}×{} px (3 MX trees)", CW * trees.len() as u32, CH);
+    props
+        .save("assets/props_atlas.png")
+        .context("save props_atlas.png")?;
+    println!(
+        "props_atlas.png written: {}×{} px (3 MX trees)",
+        CW * trees.len() as u32,
+        CH
+    );
     Ok(())
 }
 

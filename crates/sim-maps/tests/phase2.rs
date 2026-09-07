@@ -1,6 +1,5 @@
 /// Phase 2 tests: DEM sampling, gradient, building-elevation flattening.
-
-use sim_maps::dem::{DemReader, average_elevation, compute_max_rise};
+use sim_maps::dem::{average_elevation, compute_max_rise, DemReader};
 use sim_maps::types::Grid;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -27,7 +26,10 @@ fn flat_dem_sample_center() {
     let elev = dem.sample_crs(50.5, 49.5);
     assert!(elev.is_some(), "expected Some elevation");
     let e = elev.unwrap();
-    assert!((e - 42.0).abs() < 1e-4, "flat DEM should return 42.0, got {e}");
+    assert!(
+        (e - 42.0).abs() < 1e-4,
+        "flat DEM should return 42.0, got {e}"
+    );
 }
 
 #[test]
@@ -138,5 +140,8 @@ fn average_elevation_mixed_region() {
     // Left half = 0, right half = 10 → average over 0..=9 cols = 5.0
     let elev = Grid::from_fn(10, 10, |col, _| if col < 5 { 0.0f32 } else { 10.0 });
     let avg = average_elevation(&elev, 0, 0, 9, 9);
-    assert!((avg - 5.0).abs() < 0.1, "mixed region avg = {avg}, expected 5.0");
+    assert!(
+        (avg - 5.0).abs() < 0.1,
+        "mixed region avg = {avg}, expected 5.0"
+    );
 }

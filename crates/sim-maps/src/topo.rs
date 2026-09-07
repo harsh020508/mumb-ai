@@ -1,3 +1,4 @@
+use geo::algorithm::bounding_rect::BoundingRect;
 /// Phase 4 topography rules.
 ///
 /// Applied after Phase 3 rasterization (semantic grid) and Phase 2 DEM
@@ -14,9 +15,7 @@
 ///
 /// Water cells, building cells, and already-classified cliff/stairs cells
 /// are never overridden here.
-
 use geo::{Contains, Point, Polygon};
-use geo::algorithm::bounding_rect::BoundingRect;
 
 use crate::config::ElevationConfig;
 use crate::dem::compute_max_rise;
@@ -95,9 +94,15 @@ fn flatten_building(
     // Cell range that overlaps the polygon bounding box.
     let top = origin_y + h as f64 * mpc;
     let c0 = ((rect.min().x - origin_x) / mpc).floor().max(0.0) as u32;
-    let c1 = ((rect.max().x - origin_x) / mpc).ceil().min(w as f64 - 1.0).max(0.0) as u32;
+    let c1 = ((rect.max().x - origin_x) / mpc)
+        .ceil()
+        .min(w as f64 - 1.0)
+        .max(0.0) as u32;
     let r0 = ((top - rect.max().y) / mpc).floor().max(0.0) as u32;
-    let r1 = ((top - rect.min().y) / mpc).ceil().min(h as f64 - 1.0).max(0.0) as u32;
+    let r1 = ((top - rect.min().y) / mpc)
+        .ceil()
+        .min(h as f64 - 1.0)
+        .max(0.0) as u32;
 
     let mut sum = 0.0f64;
     let mut cells: Vec<(u32, u32)> = Vec::new();
@@ -122,7 +127,14 @@ fn flatten_building(
 }
 
 /// Cell centre in UTM coordinates.  Row 0 = northernmost.
-fn cell_center(col: u32, row: u32, origin_x: f64, origin_y: f64, height: u32, mpc: f64) -> Point<f64> {
+fn cell_center(
+    col: u32,
+    row: u32,
+    origin_x: f64,
+    origin_y: f64,
+    height: u32,
+    mpc: f64,
+) -> Point<f64> {
     Point::new(
         origin_x + (col as f64 + 0.5) * mpc,
         origin_y + (height as f64 - row as f64 - 0.5) * mpc,
@@ -152,8 +164,13 @@ pub fn elevation_bands(elevation: &Grid<f32>, min_m: f32, max_m: f32) -> Grid<u8
 ///   rise >= threshold    →  +0 (already cliff/stairs)
 pub fn slope_cost_modifier(rise: f32, threshold: f32) -> u8 {
     let t = threshold.max(f32::EPSILON);
-    if rise >= t              { 0 }
-    else if rise >= t * 2.0 / 3.0 { 2 }
-    else if rise >= t / 3.0        { 1 }
-    else                           { 0 }
+    if rise >= t {
+        0
+    } else if rise >= t * 2.0 / 3.0 {
+        2
+    } else if rise >= t / 3.0 {
+        1
+    } else {
+        0
+    }
 }

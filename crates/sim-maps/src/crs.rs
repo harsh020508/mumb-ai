@@ -10,7 +10,6 @@
 /// The `proj` crate wraps PROJ via FFI. We create one `Proj` converter per
 /// thread (it is not `Send`); for rayon workers, each worker constructs its
 /// own converter on demand using `new_proj()`.
-
 use anyhow::{Context, Result};
 use proj::Proj;
 

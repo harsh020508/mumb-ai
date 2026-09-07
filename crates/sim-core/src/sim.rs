@@ -18,11 +18,23 @@ use std::sync::Arc;
 #[serde(tag = "type")]
 pub enum SimEvent {
     #[serde(rename = "agent_moved")]
-    AgentMoved { id: u32, from_cell: [i64; 2], to_cell: [i64; 2] },
+    AgentMoved {
+        id: u32,
+        from_cell: [i64; 2],
+        to_cell: [i64; 2],
+    },
     #[serde(rename = "agent_said")]
-    AgentSaid { id: u32, text: String, target_id: Option<u32> },
+    AgentSaid {
+        id: u32,
+        text: String,
+        target_id: Option<u32>,
+    },
     #[serde(rename = "agent_reacted")]
-    AgentReacted { id: u32, kind: String, event_id: String },
+    AgentReacted {
+        id: u32,
+        kind: String,
+        event_id: String,
+    },
     #[serde(rename = "tick")]
     Tick { clock: i64, tick: u64, iso: String },
     #[serde(rename = "birth")]
@@ -46,7 +58,12 @@ pub struct SimEngine {
 }
 
 impl SimEngine {
-    pub fn new(tiles: Arc<TilesDb>, pop: Arc<Population>, start_secs: i64, tick_seconds: i64) -> Self {
+    pub fn new(
+        tiles: Arc<TilesDb>,
+        pop: Arc<Population>,
+        start_secs: i64,
+        tick_seconds: i64,
+    ) -> Self {
         let agents = pop
             .agents
             .iter()
@@ -63,7 +80,12 @@ impl SimEngine {
         SimEngine {
             tiles,
             pop,
-            state: SimState { tick: 0, clock_secs: start_secs, agents, relationships: Vec::new() },
+            state: SimState {
+                tick: 0,
+                clock_secs: start_secs,
+                agents,
+                relationships: Vec::new(),
+            },
             paths: HashMap::new(),
             path_idx: HashMap::new(),
             tick_seconds,
@@ -74,7 +96,12 @@ impl SimEngine {
         }
     }
 
-    pub fn from_state(tiles: Arc<TilesDb>, pop: Arc<Population>, state: SimState, tick_seconds: i64) -> Self {
+    pub fn from_state(
+        tiles: Arc<TilesDb>,
+        pop: Arc<Population>,
+        state: SimState,
+        tick_seconds: i64,
+    ) -> Self {
         let next_id = pop.agents.len() as u32;
         let seed = state.clock_secs as u64 ^ (state.tick.wrapping_mul(2654435761));
         SimEngine {
@@ -261,7 +288,10 @@ impl SimEngine {
                     alive: true,
                     memory: Vec::new(),
                 });
-                events.push(SimEvent::Birth { id, cell: [cell.x, cell.y] });
+                events.push(SimEvent::Birth {
+                    id,
+                    cell: [cell.x, cell.y],
+                });
             }
         }
         if self.rng.gen::<f64>() < death_lambda.min(0.05) {
@@ -299,13 +329,21 @@ impl SimEngine {
 
 /// Reactions to a broadcast event, independent of the map. Progressive-coded events
 /// please socially-progressive agents (negative `social`).
-pub fn broadcast_reactions(agents: &[AgentState], event_id: &str, progressive_coded: bool) -> Vec<SimEvent> {
+pub fn broadcast_reactions(
+    agents: &[AgentState],
+    event_id: &str,
+    progressive_coded: bool,
+) -> Vec<SimEvent> {
     let mut events = Vec::new();
     for a in agents.iter() {
         if !a.alive {
             continue;
         }
-        let align = if progressive_coded { -a.values.social } else { a.values.social };
+        let align = if progressive_coded {
+            -a.values.social
+        } else {
+            a.values.social
+        };
         let kind = if align > 0.0 { "up" } else { "down" };
         events.push(SimEvent::AgentReacted {
             id: a.id,
@@ -367,10 +405,24 @@ mod tests {
     fn tiny_pop() -> Population {
         let recs: Vec<PumsRecord> = (0..40)
             .map(|i| PumsRecord {
-                serialno: format!("r{i}"), sporder: 1, pwgtp: 10.0, age: 20 + (i % 60) as u8,
-                sex: 1, rac1p: 1 + (i % 6) as u8, hisp: 1, schl: 16 + (i % 9) as u8,
-                pincp: 40000.0, povpip: 100.0 + (i as f64) * 4.0, occp: 1020, cow: 1, esr: 1,
-                cit: 1, mar: 5, nativity: 1, puma: crate::pums::SF_PUMAS[(i % 8) as usize], adjinc: 1.0,
+                serialno: format!("r{i}"),
+                sporder: 1,
+                pwgtp: 10.0,
+                age: 20 + (i % 60) as u8,
+                sex: 1,
+                rac1p: 1 + (i % 6) as u8,
+                hisp: 1,
+                schl: 16 + (i % 9) as u8,
+                pincp: 40000.0,
+                povpip: 100.0 + (i as f64) * 4.0,
+                occp: 1020,
+                cow: 1,
+                esr: 1,
+                cit: 1,
+                mar: 5,
+                nativity: 1,
+                puma: crate::pums::SF_PUMAS[(i % 8) as usize],
+                adjinc: 1.0,
             })
             .collect();
         build_population(&recs, 40, 7, None)
@@ -378,7 +430,18 @@ mod tests {
 
     #[test]
     fn value_distance_symmetric() {
-        let a = ValueVector { economic: -0.5, social: -0.5, trust: 0.0, change: 0.0, s_housing: 0.5, s_crime: 0.5, s_homeless: 0.5, s_cost: 0.5, s_environment: 0.5, s_immigration: 0.5 };
+        let a = ValueVector {
+            economic: -0.5,
+            social: -0.5,
+            trust: 0.0,
+            change: 0.0,
+            s_housing: 0.5,
+            s_crime: 0.5,
+            s_homeless: 0.5,
+            s_cost: 0.5,
+            s_environment: 0.5,
+            s_immigration: 0.5,
+        };
         let mut b = a;
         b.social = 0.5;
         assert!((value_distance(&a, &b) - 1.0).abs() < 1e-9);
@@ -390,7 +453,14 @@ mod tests {
         let agents: Vec<AgentState> = pop
             .agents
             .iter()
-            .map(|a| AgentState { id: a.id, pos: Cell::new(0, 0), action: "x".into(), values: a.values, alive: true, memory: vec![] })
+            .map(|a| AgentState {
+                id: a.id,
+                pos: Cell::new(0, 0),
+                action: "x".into(),
+                values: a.values,
+                alive: true,
+                memory: vec![],
+            })
             .collect();
         let evs = broadcast_reactions(&agents, "ev1", true);
         let ups = evs

@@ -14,7 +14,6 @@
 /// tier's floor count; and a drop shadow (sun top-left) is cast to the lower-right
 /// so the building reads as a separate 3D structure. Painter's order is north-first
 /// so nearer (south) buildings occlude farther (north) ones.
-
 use anyhow::Result;
 use image::{DynamicImage, GenericImageView, Rgb, RgbImage};
 use rusqlite::{params, Connection};
@@ -96,7 +95,12 @@ pub fn footprint_rect(b: &BuildingRec, h_cells: u32) -> (u32, u32, u32, u32) {
     let img_south_edge = (h_cells as f32 - b.cell_y).clamp(0.0, h_cells as f32) as u32;
     let x = (b.cell_x * ft as f32) as u32;
     let wpx = (b.cell_w * ft as f32).max(1.0) as u32;
-    (x, img_top_row * ft, wpx, img_south_edge.saturating_sub(img_top_row) * ft)
+    (
+        x,
+        img_top_row * ft,
+        wpx,
+        img_south_edge.saturating_sub(img_top_row) * ft,
+    )
 }
 
 /// (x, y, w, h) pixel rectangle of a building's facade (below the south edge).
@@ -186,7 +190,17 @@ pub fn render_detail_chunk(
 
     // Pass 2: facades + roof fills, north-first.
     for (i, b) in buildings.iter().enumerate() {
-        draw_building(&mut img, facade_atlas, &tiles, w, h, b, cx, cy, roof_colors[i]);
+        draw_building(
+            &mut img,
+            facade_atlas,
+            &tiles,
+            w,
+            h,
+            b,
+            cx,
+            cy,
+            roof_colors[i],
+        );
     }
     // Pass 3: roof bevel edges on top, so an overlapping neighbour's roof cannot
     // erase a building's boundary seam (keeps abutting buildings visually distinct).
@@ -249,7 +263,16 @@ pub fn draw_building(
     let slope = road_slope(tiles, w, h_cells, b);
 
     // Facade below the south edge.
-    draw_facade(img, facade_atlas, style.wall, fx, fy + fh, fw, facade_h, slope);
+    draw_facade(
+        img,
+        facade_atlas,
+        style.wall,
+        fx,
+        fy + fh,
+        fw,
+        facade_h,
+        slope,
+    );
     // Rooftop fill over the footprint (per-building colour); bevel edge added later.
     draw_roof_fill(img, facade_atlas, roof, fx, fy, fw, fh);
 }
@@ -335,7 +358,15 @@ fn greedy_roof_colors(buildings: &[BuildingRec], h_cells: u32, cx: i32, cy: i32)
 
 /// Fill a footprint with a per-building roof colour tile (from the facade atlas
 /// roof row), tiled across the footprint. Bevel edges are added in a later pass.
-fn draw_roof_fill(img: &mut RgbImage, fa: &DynamicImage, roof: u32, x: u32, y: u32, w: u32, h: u32) {
+fn draw_roof_fill(
+    img: &mut RgbImage,
+    fa: &DynamicImage,
+    roof: u32,
+    x: u32,
+    y: u32,
+    w: u32,
+    h: u32,
+) {
     let rx = roof * FACADE_TS;
     let ry = ROOF_ROW * FACADE_TS;
     let (iw, ih) = (img.width(), img.height());
@@ -375,7 +406,11 @@ fn draw_roof_edge(img: &mut RgbImage, x: u32, y: u32, w: u32, h: u32) {
                 continue;
             };
             let p = *img.get_pixel(px, py);
-            img.put_pixel(px, py, Rgb([scale(p[0], f), scale(p[1], f), scale(p[2], f)]));
+            img.put_pixel(
+                px,
+                py,
+                Rgb([scale(p[0], f), scale(p[1], f), scale(p[2], f)]),
+            );
         }
     }
 }
@@ -457,7 +492,13 @@ fn tree_overlaps_building(building_cells: &[bool], w: u32, h: u32, col: u32, row
 
 fn tree_hash(cx: i32, cy: i32, col: u32, row: u32) -> u64 {
     let mut h: u64 = 0x9e37_79b9_7f4a_7c15;
-    for v in [cx as i64 as u64, cy as i64 as u64, col as u64, row as u64, 0x7233] {
+    for v in [
+        cx as i64 as u64,
+        cy as i64 as u64,
+        col as u64,
+        row as u64,
+        0x7233,
+    ] {
         h ^= v;
         h = h.wrapping_mul(0x0000_0100_0000_01b3);
     }

@@ -21,7 +21,11 @@ fn main() -> anyhow::Result<()> {
             .and_then(|j| args.get(j + 1))
             .cloned()
             .expect("--input <psam_pXX.csv> is required with --city");
-        let profile = if slug == "sf" { CityProfile::sf() } else { CityProfile::load(&slug)? };
+        let profile = if slug == "sf" {
+            CityProfile::sf()
+        } else {
+            CityProfile::load(&slug)?
+        };
         eprintln!(
             "Loading {input}, filtering {} to {} PUMAs ...",
             profile.slug,
@@ -29,15 +33,25 @@ fn main() -> anyhow::Result<()> {
         );
         let records = load_csv(&input, &profile.pumas)?;
         let total: f64 = records.iter().map(|r| r.pwgtp).sum();
-        eprintln!("Loaded {} records; total PWGTP (≈ population) {:.0}", records.len(), total);
+        eprintln!(
+            "Loaded {} records; total PWGTP (≈ population) {:.0}",
+            records.len(),
+            total
+        );
         write_subset(&records, &profile.pums_path)?;
         eprintln!("Wrote {} records to {}", records.len(), profile.pums_path);
         return Ok(());
     }
 
     // legacy positional SF path
-    let input = args.first().cloned().unwrap_or_else(|| "data/pums/psam_p06.csv".to_string());
-    let output = args.get(1).cloned().unwrap_or_else(|| "data/sf_pums.csv".to_string());
+    let input = args
+        .first()
+        .cloned()
+        .unwrap_or_else(|| "data/pums/psam_p06.csv".to_string());
+    let output = args
+        .get(1)
+        .cloned()
+        .unwrap_or_else(|| "data/sf_pums.csv".to_string());
     eprintln!("Loading {input} and filtering to SF PUMAs {SF_PUMAS:?} ...");
     let records = load_csv(&input, &SF_PUMAS)?;
     eprintln!("Loaded {} SF person records.", records.len());

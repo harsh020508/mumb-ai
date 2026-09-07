@@ -1,8 +1,7 @@
 /// Phase 6 tests: LOD semantic majority-vote downsample and collision max-pool.
-
 use sim_maps::{
     lod::{downsample_collision, downsample_semantic},
-    types::{Grid, SemanticClass, collision},
+    types::{collision, Grid, SemanticClass},
 };
 
 // ── downsample_semantic ───────────────────────────────────────────────────────
@@ -37,8 +36,11 @@ fn tie_broken_by_higher_precedence() {
     grid.set(1, 0, SemanticClass::Water);
     grid.set(0, 1, SemanticClass::Water);
     let ds = downsample_semantic(&grid, 2);
-    assert_eq!(*ds.get(0, 0), SemanticClass::Water,
-        "tie should resolve to highest-precedence class");
+    assert_eq!(
+        *ds.get(0, 0),
+        SemanticClass::Water,
+        "tie should resolve to highest-precedence class"
+    );
 }
 
 #[test]
@@ -68,8 +70,11 @@ fn non_divisible_border_block_uses_available_cells() {
     grid.set(0, 0, SemanticClass::Road);
     let ds = downsample_semantic(&grid, 2);
     assert_eq!(ds.width, 2);
-    assert_eq!(*ds.get(0, 0), SemanticClass::Road,
-        "tie between Road(prec 5) and Grass(prec 0) → Road");
+    assert_eq!(
+        *ds.get(0, 0),
+        SemanticClass::Road,
+        "tie between Road(prec 5) and Grass(prec 0) → Road"
+    );
     assert_eq!(*ds.get(1, 0), SemanticClass::Grass);
 }
 
@@ -89,8 +94,8 @@ fn lod1_then_lod2_matches_direct_factor4() {
     let grid = Grid::filled(8, 8, SemanticClass::Water);
     let lod1 = downsample_semantic(&grid, 2);
     let lod2_chained = downsample_semantic(&lod1, 2);
-    let lod2_direct  = downsample_semantic(&grid, 4);
-    assert_eq!(lod2_chained.width,  lod2_direct.width);
+    let lod2_direct = downsample_semantic(&grid, 4);
+    assert_eq!(lod2_chained.width, lod2_direct.width);
     assert_eq!(lod2_chained.height, lod2_direct.height);
     for row in 0..lod2_direct.height {
         for col in 0..lod2_direct.width {
@@ -113,8 +118,11 @@ fn collision_max_pool_picks_highest_cost() {
     grid.set(1, 0, collision::BLOCKED);
     grid.set(0, 1, collision::PATH_COST);
     let ds = downsample_collision(&grid, 2);
-    assert_eq!(*ds.get(0, 0), collision::BLOCKED,
-        "single BLOCKED cell should dominate the block");
+    assert_eq!(
+        *ds.get(0, 0),
+        collision::BLOCKED,
+        "single BLOCKED cell should dominate the block"
+    );
 }
 
 #[test]
@@ -132,10 +140,16 @@ fn collision_uniform_walkable_stays_walkable() {
 fn collision_size_matches_semantic_downsample() {
     let sem = Grid::filled(125, 125, SemanticClass::Grass);
     let coll = Grid::filled(125, 125, collision::GRASS_COST);
-    let sem_ds  = downsample_semantic(&sem,  2);
+    let sem_ds = downsample_semantic(&sem, 2);
     let coll_ds = downsample_collision(&coll, 2);
-    assert_eq!(sem_ds.width,  coll_ds.width,  "semantic and collision LOD1 widths must match");
-    assert_eq!(sem_ds.height, coll_ds.height, "semantic and collision LOD1 heights must match");
+    assert_eq!(
+        sem_ds.width, coll_ds.width,
+        "semantic and collision LOD1 widths must match"
+    );
+    assert_eq!(
+        sem_ds.height, coll_ds.height,
+        "semantic and collision LOD1 heights must match"
+    );
 }
 
 #[test]
@@ -143,7 +157,7 @@ fn lod1_size_for_125_cells() {
     // 125 × 125 cells at factor 2 → ceil(125/2) = 63 × 63.
     let grid = Grid::filled(125, 125, SemanticClass::Grass);
     let ds = downsample_semantic(&grid, 2);
-    assert_eq!(ds.width,  63, "LOD1 width should be 63");
+    assert_eq!(ds.width, 63, "LOD1 width should be 63");
     assert_eq!(ds.height, 63, "LOD1 height should be 63");
 }
 
@@ -152,7 +166,7 @@ fn lod2_size_for_125_cells() {
     // 125 × 125 cells at factor 4 → ceil(125/4) = 32 × 32.
     let grid = Grid::filled(125, 125, SemanticClass::Grass);
     let ds = downsample_semantic(&grid, 4);
-    assert_eq!(ds.width,  32, "LOD2 width should be 32");
+    assert_eq!(ds.width, 32, "LOD2 width should be 32");
     assert_eq!(ds.height, 32, "LOD2 height should be 32");
 }
 
@@ -161,7 +175,7 @@ fn lod3_size_for_125_cells() {
     // factor 8 → ceil(125/8) = 16 × 16.
     let grid = Grid::filled(125, 125, SemanticClass::Grass);
     let ds = downsample_semantic(&grid, 8);
-    assert_eq!(ds.width,  16);
+    assert_eq!(ds.width, 16);
     assert_eq!(ds.height, 16);
 }
 
@@ -170,7 +184,7 @@ fn lod4_size_for_125_cells() {
     // factor 16 → ceil(125/16) = 8 × 8.
     let grid = Grid::filled(125, 125, SemanticClass::Grass);
     let ds = downsample_semantic(&grid, 16);
-    assert_eq!(ds.width,  8);
+    assert_eq!(ds.width, 8);
     assert_eq!(ds.height, 8);
 }
 
@@ -179,7 +193,7 @@ fn lod5_size_for_125_cells() {
     // factor 32 → ceil(125/32) = 4 × 4.
     let grid = Grid::filled(125, 125, SemanticClass::Grass);
     let ds = downsample_semantic(&grid, 32);
-    assert_eq!(ds.width,  4);
+    assert_eq!(ds.width, 4);
     assert_eq!(ds.height, 4);
 }
 
@@ -202,8 +216,12 @@ fn from_u8_round_trips_all_classes() {
         SemanticClass::Water,
     ];
     for cls in classes {
-        assert_eq!(SemanticClass::from_u8(cls as u8), cls,
-            "from_u8({}) should round-trip", cls as u8);
+        assert_eq!(
+            SemanticClass::from_u8(cls as u8),
+            cls,
+            "from_u8({}) should round-trip",
+            cls as u8
+        );
     }
 }
 

@@ -90,15 +90,15 @@ impl Cache {
                 created INTEGER NOT NULL
              );",
         )?;
-        Ok(Cache { conn: Mutex::new(conn) })
+        Ok(Cache {
+            conn: Mutex::new(conn),
+        })
     }
     fn get(&self, key: &str) -> Option<String> {
         let conn = self.conn.lock().unwrap();
-        conn.query_row(
-            "SELECT response FROM llm_cache WHERE key=?1",
-            [key],
-            |r| r.get::<_, String>(0),
-        )
+        conn.query_row("SELECT response FROM llm_cache WHERE key=?1", [key], |r| {
+            r.get::<_, String>(0)
+        })
         .ok()
     }
     fn put(&self, key: &str, model: &str, response: &str) {
@@ -181,14 +181,22 @@ impl ModelClient {
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(8);
-        let offline = std::env::var("MODEL_OFFLINE").map(|v| v == "1").unwrap_or(false);
+        let offline = std::env::var("MODEL_OFFLINE")
+            .map(|v| v == "1")
+            .unwrap_or(false);
         let anthropic_key = std::env::var("ANTHROPIC_API_KEY").unwrap_or_default();
         let anthropic_url = std::env::var("ANTHROPIC_API_URL")
             .unwrap_or_else(|_| "https://api.anthropic.com/v1/messages".to_string());
         let omniroute_key = std::env::var("OMNIROUTE_API_KEY").unwrap_or_default();
         let omniroute_url = std::env::var("OMNIROUTE_API_URL")
             .or_else(|_| std::env::var("OMNIROUTE_URL"))
-            .unwrap_or_else(|_| if !omniroute_key.is_empty() { "http://localhost:20128/v1".to_string() } else { String::new() });
+            .unwrap_or_else(|_| {
+                if !omniroute_key.is_empty() {
+                    "http://localhost:20128/v1".to_string()
+                } else {
+                    String::new()
+                }
+            });
         let http = reqwest::Client::builder()
             .timeout(Duration::from_secs(180))
             .connect_timeout(Duration::from_secs(15))
@@ -284,7 +292,11 @@ impl ModelClient {
         let provider = self.resolve_provider(model);
         let (url, body) = match provider {
             Provider::AzureResponses => {
-                let input = if system.is_empty() { user.to_string() } else { format!("{system}\n\n{user}") };
+                let input = if system.is_empty() {
+                    user.to_string()
+                } else {
+                    format!("{system}\n\n{user}")
+                };
                 (
                     format!("{}/responses", self.base),
                     json!({ "model": model.id(), "input": input, "max_output_tokens": max_tokens.max(16) }),
@@ -292,7 +304,9 @@ impl ModelClient {
             }
             Provider::AzureChat => {
                 let mut messages = Vec::new();
-                if !system.is_empty() { messages.push(json!({"role":"system","content":system})); }
+                if !system.is_empty() {
+                    messages.push(json!({"role":"system","content":system}));
+                }
                 messages.push(json!({"role":"user","content":user}));
                 (
                     format!("{}/chat/completions", self.base),
@@ -301,7 +315,9 @@ impl ModelClient {
             }
             Provider::Omniroute => {
                 let mut messages = Vec::new();
-                if !system.is_empty() { messages.push(json!({"role":"system","content":system})); }
+                if !system.is_empty() {
+                    messages.push(json!({"role":"system","content":system}));
+                }
                 messages.push(json!({"role":"user","content":user}));
                 (
                     format!("{}/chat/completions", self.omniroute_url),
@@ -365,7 +381,12 @@ impl ModelClient {
                     if status.as_u16() == 429 || status.is_server_error() {
                         if attempt >= self.max_retries {
                             let txt = r.text().await.unwrap_or_default();
-                            return Err(anyhow!("model {} status {} after retries: {}", model.id(), status, truncate(&txt, 300)));
+                            return Err(anyhow!(
+                                "model {} status {} after retries: {}",
+                                model.id(),
+                                status,
+                                truncate(&txt, 300)
+                            ));
                         }
                         self.backoff(attempt).await;
                         attempt += 1;
@@ -374,7 +395,12 @@ impl ModelClient {
                     }
                     let txt = r.text().await.unwrap_or_default();
                     if !status.is_success() {
-                        return Err(anyhow!("model {} HTTP {}: {}", model.id(), status, truncate(&txt, 400)));
+                        return Err(anyhow!(
+                            "model {} HTTP {}: {}",
+                            model.id(),
+                            status,
+                            truncate(&txt, 400)
+                        ));
                     }
                     return self.extract(model, &txt);
                 }
@@ -417,8 +443,13 @@ impl ModelClient {
     }
 
     fn extract(&self, model: Model, txt: &str) -> Result<String> {
-        let v: Value = serde_json::from_str(txt)
-            .with_context(|| format!("non-JSON response from {}: {}", model.id(), truncate(txt, 300)))?;
+        let v: Value = serde_json::from_str(txt).with_context(|| {
+            format!(
+                "non-JSON response from {}: {}",
+                model.id(),
+                truncate(txt, 300)
+            )
+        })?;
         self.record_usage(&v);
         if model.provider() == Provider::Anthropic {
             // Anthropic Messages API: content is an array of blocks; take the text block(s).
@@ -431,7 +462,10 @@ impl ModelClient {
                     }
                 }
             }
-            return Err(anyhow!("no text block in Anthropic response for {}", model.id()));
+            return Err(anyhow!(
+                "no text block in Anthropic response for {}",
+                model.id()
+            ));
         }
         if model.uses_responses() {
             // Prefer a top-level convenience field, else find the message item.
@@ -457,7 +491,11 @@ impl ModelClient {
             }
             // Some responses are flagged incomplete (token budget consumed by reasoning).
             let status = v.get("status").and_then(|s| s.as_str()).unwrap_or("?");
-            Err(anyhow!("no message in /responses output (status={}) for {}", status, model.id()))
+            Err(anyhow!(
+                "no message in /responses output (status={}) for {}",
+                status,
+                model.id()
+            ))
         } else {
             v.get("choices")
                 .and_then(|c| c.as_array())
@@ -482,7 +520,10 @@ fn truncate(s: &str, n: usize) -> String {
 /// Strip markdown code fences and isolate the first JSON value in a model reply.
 pub fn extract_json(text: &str) -> Result<Value> {
     let t = text.trim();
-    let t = t.strip_prefix("```json").or_else(|| t.strip_prefix("```")).unwrap_or(t);
+    let t = t
+        .strip_prefix("```json")
+        .or_else(|| t.strip_prefix("```"))
+        .unwrap_or(t);
     let t = t.strip_suffix("```").unwrap_or(t);
     let t = t.trim();
     // Try whole string, then the first {...} or [...] block.
@@ -498,7 +539,10 @@ pub fn extract_json(text: &str) -> Result<Value> {
             }
         }
     }
-    Err(anyhow!("could not parse JSON from model reply: {}", truncate(text, 200)))
+    Err(anyhow!(
+        "could not parse JSON from model reply: {}",
+        truncate(text, 200)
+    ))
 }
 
 #[cfg(test)]

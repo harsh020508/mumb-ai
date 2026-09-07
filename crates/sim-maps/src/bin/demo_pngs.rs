@@ -1,7 +1,6 @@
 /// Generates synthetic demo PNGs for visual inspection of Phases 3-6.
 ///
 /// Output directory: /tmp/map/
-
 use anyhow::Result;
 use std::path::Path;
 
@@ -49,9 +48,15 @@ fn phase3_city_block(out: &Path) -> Result<()> {
     features.park_polys.push(rect_poly(39.0, 39.0, 89.0, 89.0));
 
     // Building block in NW corner.
-    features.buildings.push(BuildingRecord { poly: rect_poly(5.0, 79.0, 35.0, 123.0), tier: BuildingTier::Low });
+    features.buildings.push(BuildingRecord {
+        poly: rect_poly(5.0, 79.0, 35.0, 123.0),
+        tier: BuildingTier::Low,
+    });
     // Building block in NE corner.
-    features.buildings.push(BuildingRecord { poly: rect_poly(93.0, 79.0, 123.0, 123.0), tier: BuildingTier::Low });
+    features.buildings.push(BuildingRecord {
+        poly: rect_poly(93.0, 79.0, 123.0, 123.0),
+        tier: BuildingTier::Low,
+    });
 
     // Two crossing roads.
     features.roads.push(RoadFeature {
@@ -158,9 +163,19 @@ fn phase4_terrain(out: &Path) -> Result<()> {
         }
     });
 
-    let cfg = ElevationConfig { walkable_threshold_m: 1.5, flatten_buildings: false };
-    apply_topography(&mut semantic, &mut elevation, &[],
-                     origin.0, origin.1, mpc, &cfg);
+    let cfg = ElevationConfig {
+        walkable_threshold_m: 1.5,
+        flatten_buildings: false,
+    };
+    apply_topography(
+        &mut semantic,
+        &mut elevation,
+        &[],
+        origin.0,
+        origin.1,
+        mpc,
+        &cfg,
+    );
 
     dump_semantic_png(&semantic, &out.join("p4_terrain.png"), 4)?;
     println!("  p4_terrain.png");
@@ -175,7 +190,10 @@ fn phase4_buildings_flat(out: &Path) -> Result<()> {
     let building = rect_poly(30.0, 30.0, 98.0, 98.0);
 
     let mut features = FeatureIndex::empty();
-    features.buildings.push(BuildingRecord { poly: building.clone(), tier: BuildingTier::Low });
+    features.buildings.push(BuildingRecord {
+        poly: building.clone(),
+        tier: BuildingTier::Low,
+    });
 
     let mut semantic = rasterize_semantic_grid(&features, origin.0, origin.1, cells, cells, mpc);
 
@@ -183,21 +201,29 @@ fn phase4_buildings_flat(out: &Path) -> Result<()> {
     let mut elevation: Grid<f32> = Grid::from_fn(cells, cells, |_col, row| row as f32 * 1.0);
     let building_polys = vec![building];
 
-    let cfg = ElevationConfig { walkable_threshold_m: 1.5, flatten_buildings: true };
-    apply_topography(&mut semantic, &mut elevation, &building_polys,
-                     origin.0, origin.1, mpc, &cfg);
+    let cfg = ElevationConfig {
+        walkable_threshold_m: 1.5,
+        flatten_buildings: true,
+    };
+    apply_topography(
+        &mut semantic,
+        &mut elevation,
+        &building_polys,
+        origin.0,
+        origin.1,
+        mpc,
+        &cfg,
+    );
 
     dump_semantic_png(&semantic, &out.join("p4_buildings_flat_semantic.png"), 4)?;
 
     // Also dump a collision layer to show buildings as blocked.
-    let coll: Grid<u8> = Grid::from_fn(cells, cells, |col, row| {
-        match semantic.get(col, row) {
-            SemanticClass::BuildingFloor | SemanticClass::BuildingWall => 255,
-            SemanticClass::CliffFace => 200,
-            SemanticClass::Road => 10,
-            SemanticClass::Grass => 20,
-            _ => 50,
-        }
+    let coll: Grid<u8> = Grid::from_fn(cells, cells, |col, row| match semantic.get(col, row) {
+        SemanticClass::BuildingFloor | SemanticClass::BuildingWall => 255,
+        SemanticClass::CliffFace => 200,
+        SemanticClass::Road => 10,
+        SemanticClass::Grass => 20,
+        _ => 50,
     });
     dump_collision_png(&coll, &out.join("p4_buildings_flat_collision.png"), 4)?;
 
@@ -268,8 +294,14 @@ fn phase5_autotile_water(out: &Path) -> Result<()> {
     features.water_polys.push(rect_poly(12.0, 12.0, 84.0, 84.0));
     // Two small islands (Grass patches that overwrite water — lower precedence,
     // so we represent them as buildings to get higher precedence).
-    features.buildings.push(BuildingRecord { poly: rect_poly(28.0, 28.0, 44.0, 44.0), tier: BuildingTier::Low });
-    features.buildings.push(BuildingRecord { poly: rect_poly(56.0, 52.0, 72.0, 68.0), tier: BuildingTier::Low });
+    features.buildings.push(BuildingRecord {
+        poly: rect_poly(28.0, 28.0, 44.0, 44.0),
+        tier: BuildingTier::Low,
+    });
+    features.buildings.push(BuildingRecord {
+        poly: rect_poly(56.0, 52.0, 72.0, 68.0),
+        tier: BuildingTier::Low,
+    });
 
     let semantic = rasterize_semantic_grid(&features, 0.0, 0.0, cells, cells, mpc);
     let variants = autotile_grid(&semantic);
@@ -293,11 +325,13 @@ fn phase7_slope_collision(out: &Path) -> Result<()> {
     // Two crossing roads on hilly terrain.
     features.roads.push(RoadFeature {
         line: road_line(&[(0.0, 64.0), (128.0, 64.0)]),
-        semantic: SemanticClass::Road, buffer_m: 6.0,
+        semantic: SemanticClass::Road,
+        buffer_m: 6.0,
     });
     features.roads.push(RoadFeature {
         line: road_line(&[(64.0, 0.0), (64.0, 128.0)]),
-        semantic: SemanticClass::Road, buffer_m: 6.0,
+        semantic: SemanticClass::Road,
+        buffer_m: 6.0,
     });
 
     let mut semantic = rasterize_semantic_grid(&features, origin.0, origin.1, cells, cells, mpc);
@@ -309,13 +343,28 @@ fn phase7_slope_collision(out: &Path) -> Result<()> {
         let dx = col as f64 - cx;
         let dy = row as f64 - cy;
         let dist = (dx * dx + dy * dy).sqrt();
-        if dist < 15.0 { 20.0_f32 }
-        else if dist < 22.0 { 20.0 - (dist - 15.0) as f32 * 2.5 }
-        else { 2.5 }
+        if dist < 15.0 {
+            20.0_f32
+        } else if dist < 22.0 {
+            20.0 - (dist - 15.0) as f32 * 2.5
+        } else {
+            2.5
+        }
     });
 
-    let cfg = ElevationConfig { walkable_threshold_m: 1.5, flatten_buildings: false };
-    apply_topography(&mut semantic, &mut elevation, &[], origin.0, origin.1, mpc, &cfg);
+    let cfg = ElevationConfig {
+        walkable_threshold_m: 1.5,
+        flatten_buildings: false,
+    };
+    apply_topography(
+        &mut semantic,
+        &mut elevation,
+        &[],
+        origin.0,
+        origin.1,
+        mpc,
+        &cfg,
+    );
 
     let rise = compute_max_rise(&elevation);
     let coll_slope = semantic_to_collision(&semantic, &rise, false, 1.5);
@@ -341,9 +390,11 @@ fn phase7_slope_collision(out: &Path) -> Result<()> {
                 let r = (*rise.get(col, row)).min(threshold) / threshold;
                 let v = (r * 255.0) as u8;
                 let px = Rgb([v, v, v]);
-                for dr in 0..scale { for dc in 0..scale {
-                    img.put_pixel(col * scale + dc, row * scale + dr, px);
-                }}
+                for dr in 0..scale {
+                    for dc in 0..scale {
+                        img.put_pixel(col * scale + dc, row * scale + dr, px);
+                    }
+                }
             }
         }
         img.save(out.join("p7_slope_rise.png"))?;
@@ -365,16 +416,24 @@ fn phase6_lod_comparison(out: &Path) -> Result<()> {
     let mut features = FeatureIndex::empty();
     // City block: park in centre, buildings on two sides, roads crossing.
     features.park_polys.push(rect_poly(40.0, 40.0, 88.0, 88.0));
-    features.buildings.push(BuildingRecord { poly: rect_poly(4.0, 80.0, 36.0, 124.0), tier: BuildingTier::Low });
-    features.buildings.push(BuildingRecord { poly: rect_poly(92.0, 4.0, 124.0, 36.0), tier: BuildingTier::Low });
+    features.buildings.push(BuildingRecord {
+        poly: rect_poly(4.0, 80.0, 36.0, 124.0),
+        tier: BuildingTier::Low,
+    });
+    features.buildings.push(BuildingRecord {
+        poly: rect_poly(92.0, 4.0, 124.0, 36.0),
+        tier: BuildingTier::Low,
+    });
     features.water_polys.push(rect_poly(0.0, 0.0, 128.0, 20.0));
     features.roads.push(RoadFeature {
         line: road_line(&[(0.0, 64.0), (128.0, 64.0)]),
-        semantic: SemanticClass::Road, buffer_m: 6.0,
+        semantic: SemanticClass::Road,
+        buffer_m: 6.0,
     });
     features.roads.push(RoadFeature {
         line: road_line(&[(64.0, 0.0), (64.0, 128.0)]),
-        semantic: SemanticClass::Road, buffer_m: 6.0,
+        semantic: SemanticClass::Road,
+        buffer_m: 6.0,
     });
 
     let semantic0 = rasterize_semantic_grid(&features, 0.0, 0.0, cells, cells, mpc);
@@ -394,14 +453,13 @@ fn phase6_lod_comparison(out: &Path) -> Result<()> {
     let coll0 = {
         use sim_maps::types::{collision, make_tile_id};
         let _ = make_tile_id; // suppress warning
-        Grid::from_fn(cells, cells, |col, row| {
-            match semantic0.get(col, row) {
-                SemanticClass::Water | SemanticClass::BuildingWall | SemanticClass::BuildingFloor
-                    => collision::BLOCKED,
-                SemanticClass::Road     => collision::ROAD_COST,
-                SemanticClass::ParkGrass => collision::PARK_COST,
-                _   => collision::GRASS_COST,
+        Grid::from_fn(cells, cells, |col, row| match semantic0.get(col, row) {
+            SemanticClass::Water | SemanticClass::BuildingWall | SemanticClass::BuildingFloor => {
+                collision::BLOCKED
             }
+            SemanticClass::Road => collision::ROAD_COST,
+            SemanticClass::ParkGrass => collision::PARK_COST,
+            _ => collision::GRASS_COST,
         })
     };
     dump_collision_png(&coll0, &out.join("p6_coll_lod0.png"), 4)?;

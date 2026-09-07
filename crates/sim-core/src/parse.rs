@@ -83,7 +83,10 @@ fn from_json(text: &str, city: &str) -> ParsedQuestion {
             )
         }
     };
-    let supported = v.get("supported").and_then(|x| x.as_bool()).unwrap_or(false);
+    let supported = v
+        .get("supported")
+        .and_then(|x| x.as_bool())
+        .unwrap_or(false);
     if !supported {
         let reason = v
             .get("reason")
@@ -93,12 +96,20 @@ fn from_json(text: &str, city: &str) -> ParsedQuestion {
         let examples: Vec<String> = v
             .get("examples")
             .and_then(|x| x.as_array())
-            .map(|a| a.iter().filter_map(|x| x.as_str().map(|s| s.to_string())).collect())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|x| x.as_str().map(|s| s.to_string()))
+                    .collect()
+            })
             .filter(|e: &Vec<String>| !e.is_empty())
             .unwrap_or_else(|| default_examples(city));
         return ParsedQuestion::unsupported(&reason, examples);
     }
-    let framing = match v.get("framing").and_then(|x| x.as_str()).map(|s| s.to_lowercase()) {
+    let framing = match v
+        .get("framing")
+        .and_then(|x| x.as_str())
+        .map(|s| s.to_lowercase())
+    {
         Some(s) if s == "vote" || s == "belief" || s == "options" => s,
         _ => {
             return ParsedQuestion::unsupported(
@@ -107,7 +118,12 @@ fn from_json(text: &str, city: &str) -> ParsedQuestion {
             );
         }
     };
-    let question = v.get("question").and_then(|x| x.as_str()).unwrap_or("").trim().to_string();
+    let question = v
+        .get("question")
+        .and_then(|x| x.as_str())
+        .unwrap_or("")
+        .trim()
+        .to_string();
     if question.is_empty() {
         return ParsedQuestion::unsupported(
             "Router returned an empty question.",
@@ -117,7 +133,11 @@ fn from_json(text: &str, city: &str) -> ParsedQuestion {
     let options: Vec<String> = v
         .get("options")
         .and_then(|x| x.as_array())
-        .map(|a| a.iter().filter_map(|x| x.as_str().map(|s| s.to_string())).collect())
+        .map(|a| {
+            a.iter()
+                .filter_map(|x| x.as_str().map(|s| s.to_string()))
+                .collect()
+        })
         .unwrap_or_default();
     if framing == "options" && options.len() < 2 {
         return ParsedQuestion::unsupported(
@@ -129,7 +149,11 @@ fn from_json(text: &str, city: &str) -> ParsedQuestion {
         supported: true,
         framing,
         question,
-        description: v.get("description").and_then(|x| x.as_str()).unwrap_or("").to_string(),
+        description: v
+            .get("description")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string(),
         options,
         reason: String::new(),
         examples: Vec::new(),

@@ -189,7 +189,11 @@ pub fn generate(rec: &PumsRecord, income_q: usize, rng: &mut impl Rng) -> Lifest
         "has a typical mix of necessary and discretionary spending".to_string()
     };
 
-    Lifestyle { hobbies, routine, spending }
+    Lifestyle {
+        hobbies,
+        routine,
+        spending,
+    }
 }
 
 fn fmt_hour(h: f64) -> String {

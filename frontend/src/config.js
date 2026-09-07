@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 
 // Backend (see ../INTEGRATION.md). CORS is wide-open, so browser fetch works.
-export const BASE = (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"))
+export const BASE = (typeof window !== "undefined" && (window.location.port === "5173" || window.location.port === "3000"))
   ? "http://127.0.0.1:8080"
   : (typeof window !== "undefined" ? window.location.origin : "");
 

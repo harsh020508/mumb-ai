@@ -7,71 +7,75 @@
 #[repr(u8)]
 pub enum SemanticClass {
     #[default]
-    Grass         = 0,
-    ParkGrass     = 1,
-    Sand          = 2,
-    Path          = 3,
-    Sidewalk      = 4,
-    Road          = 5,
-    Stairs        = 6,
-    CliffFace     = 7,
+    Grass = 0,
+    ParkGrass = 1,
+    Sand = 2,
+    Path = 3,
+    Sidewalk = 4,
+    Road = 5,
+    Stairs = 6,
+    CliffFace = 7,
     BuildingFloor = 8,
-    BuildingWall  = 9,
-    Water         = 10,
+    BuildingWall = 9,
+    Water = 10,
     /// Open paved urban plaza — Civic Center, UN Plaza, Ferry Building forecourt.
-    Plaza         = 11,
+    Plaza = 11,
     /// Water/land transition band (auto-generated: land cells touching water).
-    Shoreline     = 12,
+    Shoreline = 12,
     /// 4-7 story apartments, SoMa mid-rise.
-    BuildingMid   = 13,
+    BuildingMid = 13,
     /// 8+ story FiDi towers.
-    BuildingTall  = 14,
+    BuildingTall = 14,
 }
 
 impl SemanticClass {
     /// Higher value → higher precedence when cells overlap.
     pub fn precedence(self) -> u8 {
         match self {
-            Self::Grass         => 0,
-            Self::ParkGrass     => 1,
-            Self::Shoreline     => 1,  // same as ParkGrass; set by post-pass, not write_if_higher
-            Self::Sand          => 2,
-            Self::Path          => 3,
-            Self::Sidewalk      => 4,
-            Self::Plaza         => 4,  // same as Sidewalk; Road(5) beats it
-            Self::Road          => 5,
-            Self::Stairs        => 6,
-            Self::CliffFace     => 7,
+            Self::Grass => 0,
+            Self::ParkGrass => 1,
+            Self::Shoreline => 1, // same as ParkGrass; set by post-pass, not write_if_higher
+            Self::Sand => 2,
+            Self::Path => 3,
+            Self::Sidewalk => 4,
+            Self::Plaza => 4, // same as Sidewalk; Road(5) beats it
+            Self::Road => 5,
+            Self::Stairs => 6,
+            Self::CliffFace => 7,
             Self::BuildingFloor => 8,
-            Self::BuildingMid   => 8,
-            Self::BuildingTall  => 8,
-            Self::BuildingWall  => 9,
-            Self::Water         => 10,
+            Self::BuildingMid => 8,
+            Self::BuildingTall => 8,
+            Self::BuildingWall => 9,
+            Self::Water => 10,
         }
     }
 
     pub fn merge(self, other: Self) -> Self {
-        if other.precedence() > self.precedence() { other } else { self }
+        if other.precedence() > self.precedence() {
+            other
+        } else {
+            self
+        }
     }
 
     /// Convert a raw u8 discriminant back to SemanticClass (unknown → Grass).
     pub fn from_u8(v: u8) -> Self {
         match v {
-            1  => Self::ParkGrass,
-            2  => Self::Sand,
-            3  => Self::Path,
-            4  => Self::Sidewalk,
-            5  => Self::Road,
-            6  => Self::Stairs,
-            7  => Self::CliffFace,
-            8  => Self::BuildingFloor,
-            9  => Self::BuildingWall,
+            1 => Self::ParkGrass,
+            2 => Self::Sand,
+            3 => Self::Path,
+            4 => Self::Sidewalk,
+            5 => Self::Road,
+            6 => Self::Stairs,
+            7 => Self::CliffFace,
+            8 => Self::BuildingFloor,
+            9 => Self::BuildingWall,
             10 => Self::Water,
             11 => Self::Plaza,
             12 => Self::Shoreline,
             13 => Self::BuildingMid,
             14 => Self::BuildingTall,
-            _  => Self::Grass,
+            _ => Self::Grass,
         }
     }
 }
@@ -97,16 +101,16 @@ pub fn tile_id_variant(id: u32) -> u8 {
 
 /// Collision costs stored in the `collision` layer.
 pub mod collision {
-    pub const WALKABLE: u8      = 0;
-    pub const GRASS_COST: u8    = 2;
-    pub const PARK_COST: u8     = 1;
+    pub const WALKABLE: u8 = 0;
+    pub const GRASS_COST: u8 = 2;
+    pub const PARK_COST: u8 = 1;
     pub const SIDEWALK_COST: u8 = 0;
-    pub const ROAD_COST: u8     = 0;
-    pub const PLAZA_COST: u8    = 0;
+    pub const ROAD_COST: u8 = 0;
+    pub const PLAZA_COST: u8 = 0;
     pub const SHORELINE_COST: u8 = 1;
-    pub const PATH_COST: u8     = 1;
-    pub const STAIRS_COST: u8   = 8;
-    pub const BLOCKED: u8       = 255;
+    pub const PATH_COST: u8 = 1;
+    pub const STAIRS_COST: u8 = 8;
+    pub const BLOCKED: u8 = 255;
 }
 
 /// A fixed-size 2-D grid stored row-major.
@@ -119,13 +123,21 @@ pub struct Grid<T: Clone> {
 
 impl<T: Clone + Default> Grid<T> {
     pub fn new(width: u32, height: u32) -> Self {
-        Self { width, height, data: vec![T::default(); (width * height) as usize] }
+        Self {
+            width,
+            height,
+            data: vec![T::default(); (width * height) as usize],
+        }
     }
 }
 
 impl<T: Clone> Grid<T> {
     pub fn filled(width: u32, height: u32, value: T) -> Self {
-        Self { width, height, data: vec![value; (width * height) as usize] }
+        Self {
+            width,
+            height,
+            data: vec![value; (width * height) as usize],
+        }
     }
 
     #[inline]
@@ -149,7 +161,11 @@ impl<T: Clone> Grid<T> {
                 data.push(f(col, row));
             }
         }
-        Self { width, height, data }
+        Self {
+            width,
+            height,
+            data,
+        }
     }
 }
 

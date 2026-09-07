@@ -25,8 +25,10 @@ async fn main() -> anyhow::Result<()> {
         .skip(1)
         .find(|a| !a.starts_with("--"))
         .unwrap_or_else(news::today);
-    let cities: Vec<(String, String)> =
-        CITIES.iter().map(|(s, q)| (s.to_string(), q.to_string())).collect();
+    let cities: Vec<(String, String)> = CITIES
+        .iter()
+        .map(|(s, q)| (s.to_string(), q.to_string()))
+        .collect();
     news::refresh_all(&cities, &date).await;
     eprintln!("[daemon] all cities advanced to {date}");
     Ok(())

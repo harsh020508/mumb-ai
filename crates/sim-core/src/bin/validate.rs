@@ -25,7 +25,10 @@ struct Args {
 }
 
 fn parse_args() -> Args {
-    let mut a = Args { city: "mumbai".into(), ..Default::default() };
+    let mut a = Args {
+        city: "mumbai".into(),
+        ..Default::default()
+    };
     let mut it = std::env::args().skip(1);
     while let Some(arg) = it.next() {
         match arg.as_str() {
@@ -58,13 +61,19 @@ async fn run(args: Args) -> i32 {
         let prof = match CityProfile::from_file(std::path::Path::new(&city_path)) {
             Ok(p) => p,
             Err(e) => {
-                eprintln!("CRITICAL DATASET ERROR: Failed to load city profile '{city_path}': {e:#}");
+                eprintln!(
+                    "CRITICAL DATASET ERROR: Failed to load city profile '{city_path}': {e:#}"
+                );
                 return 1;
             }
         };
         // Verify PUMAs vs centroids 1:1 match
         if prof.centroids.len() != prof.pumas.len() {
-            eprintln!("CRITICAL DATASET ERROR: City '{city_slug}' has {} PUMAs but {} centroids!", prof.pumas.len(), prof.centroids.len());
+            eprintln!(
+                "CRITICAL DATASET ERROR: City '{city_slug}' has {} PUMAs but {} centroids!",
+                prof.pumas.len(),
+                prof.centroids.len()
+            );
             return 1;
         }
         let mut seen_pumas = std::collections::HashSet::new();
@@ -76,7 +85,10 @@ async fn run(args: Args) -> i32 {
         }
         // Verify PUMS records CSV exists
         if !std::path::Path::new(&prof.pums_path).exists() {
-            eprintln!("CRITICAL DATASET ERROR: Missing PUMS CSV '{}' for city '{}'", prof.pums_path, city_slug);
+            eprintln!(
+                "CRITICAL DATASET ERROR: Missing PUMS CSV '{}' for city '{}'",
+                prof.pums_path, city_slug
+            );
             return 1;
         }
     }
@@ -84,9 +96,10 @@ async fn run(args: Args) -> i32 {
         println!("All 5 city dataset & tile integrity checks passed: mumbai, delhi, bangalore, kolkata, jaipur.");
     }
 
-    let rubric_path = args.rubric.clone().unwrap_or_else(|| {
-        format!("rubric_{}.yaml", args.city)
-    });
+    let rubric_path = args
+        .rubric
+        .clone()
+        .unwrap_or_else(|| format!("rubric_{}.yaml", args.city));
     let rubric = match Rubric::load(&rubric_path) {
         Ok(r) => r,
         Err(e) => {
@@ -110,7 +123,10 @@ async fn run(args: Args) -> i32 {
     let records = match pums::load_city(&profile) {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("failed to load PUMS for {} ({e}). Run `ingest_pums --city {}` first.", args.city, args.city);
+            eprintln!(
+                "failed to load PUMS for {} ({e}). Run `ingest_pums --city {}` first.",
+                args.city, args.city
+            );
             return 2;
         }
     };
@@ -127,7 +143,10 @@ async fn run(args: Args) -> i32 {
     }
     let engine = Engine::new(client.clone());
 
-    eprintln!("Building {} population N={n} seed={seed} (clean mode) ...", args.city);
+    eprintln!(
+        "Building {} population N={n} seed={seed} (clean mode) ...",
+        args.city
+    );
     let pop = build_population_with(&records, n, seed, None, profile.clone());
 
     let mut categories: Vec<CategoryScore> = Vec::new();
@@ -161,7 +180,13 @@ async fn run(args: Args) -> i32 {
         if !args.quiet {
             println!(
                 "  ELECTION {:<34} pred={:.3} target={:.3} err={:.3} tol={:.3} score={:.2} {}",
-                e.id, res.p_yes, e.target_share, abs_err, e.tolerance, score, pass_mark(pass)
+                e.id,
+                res.p_yes,
+                e.target_share,
+                abs_err,
+                e.tolerance,
+                score,
+                pass_mark(pass)
             );
         }
         e_rows.push(serde_json::json!({
@@ -172,7 +197,13 @@ async fn run(args: Args) -> i32 {
     }
     let e_cat = mean(&e_scores);
     let e_pass = e_max_err <= rubric.thresholds.elections_measures_max_abs_err;
-    categories.push(CategoryScore { name: "elections_measures".into(), score: e_cat, weight: rubric.weights.elections_measures, n: e_scores.len(), passed: e_pass });
+    categories.push(CategoryScore {
+        name: "elections_measures".into(),
+        score: e_cat,
+        weight: rubric.weights.elections_measures,
+        n: e_scores.len(),
+        passed: e_pass,
+    });
     report.insert("elections_measures".into(), serde_json::json!({"entries": e_rows, "category_score": e_cat, "max_abs_err": e_max_err, "max_abs_err_threshold": rubric.thresholds.elections_measures_max_abs_err}));
 
     // ---- resolved markets: informative (scored) ----
@@ -183,22 +214,40 @@ async fn run(args: Args) -> i32 {
         let poll = market_poll(m);
         let res = match engine.run_poll(&pop, &poll).await {
             Ok(r) => r,
-            Err(err) => { eprintln!("  [{}] market error: {err}", m.id); continue; }
+            Err(err) => {
+                eprintln!("  [{}] market error: {err}", m.id);
+                continue;
+            }
         };
-        let (score, b, pass) = market_entry_score(res.p_yes, m.outcome, rubric.thresholds.resolved_markets_max_brier);
+        let (score, b, pass) = market_entry_score(
+            res.p_yes,
+            m.outcome,
+            rubric.thresholds.resolved_markets_max_brier,
+        );
         m_max_brier = m_max_brier.max(b);
         m_scores.push(score);
         if !args.quiet {
             println!(
                 "  MARKET   {:<34} pred={:.3} outcome={:.0} brier={:.3} score={:.2} {}",
-                m.id, res.p_yes, m.outcome, b, score, pass_mark(pass)
+                m.id,
+                res.p_yes,
+                m.outcome,
+                b,
+                score,
+                pass_mark(pass)
             );
         }
         m_rows.push(serde_json::json!({"id": m.id, "pred": res.p_yes, "outcome": m.outcome, "brier": b, "score": score, "pass": pass}));
     }
     let m_cat = mean(&m_scores);
     let m_pass = m_max_brier <= rubric.thresholds.resolved_markets_max_brier || m_scores.is_empty();
-    categories.push(CategoryScore { name: "resolved_markets_city_informative".into(), score: m_cat, weight: rubric.weights.resolved_markets_city_informative, n: m_scores.len(), passed: m_pass });
+    categories.push(CategoryScore {
+        name: "resolved_markets_city_informative".into(),
+        score: m_cat,
+        weight: rubric.weights.resolved_markets_city_informative,
+        n: m_scores.len(),
+        passed: m_pass,
+    });
 
     // general-knowledge bucket: reported only, weight 0
     let mut g_rows = Vec::new();
@@ -222,34 +271,68 @@ async fn run(args: Args) -> i32 {
         let base = Poll {
             question: c.question.clone(),
             description: c.description.clone(),
-            framing: if c.framing == "belief" { Framing::Belief } else { Framing::Vote },
+            framing: if c.framing == "belief" {
+                Framing::Belief
+            } else {
+                Framing::Vote
+            },
             as_of_date: c.as_of_date.clone(),
             model: Some(c.model.clone()),
             population: c.population.clone(),
             event: None,
             options: Vec::new(),
         };
-        let ev = Event { text: c.event.clone(), as_of_date: c.as_of_date.clone() };
+        let ev = Event {
+            text: c.event.clone(),
+            as_of_date: c.as_of_date.clone(),
+        };
         let (b0, b1, delta) = match engine.run_counterfactual(&pop, &base, ev).await {
             Ok(x) => x,
-            Err(err) => { eprintln!("  [{}] cf error: {err}", c.id); continue; }
+            Err(err) => {
+                eprintln!("  [{}] cf error: {err}", c.id);
+                continue;
+            }
         };
         let up = c.expected_direction.eq_ignore_ascii_case("up");
-        let (score, dir_ok) = cf_entry_score(delta, up, c.real_poll_delta, c.magnitude_tolerance.unwrap_or(0.1));
-        if dir_ok { c_dir_ok += 1; }
+        let (score, dir_ok) = cf_entry_score(
+            delta,
+            up,
+            c.real_poll_delta,
+            c.magnitude_tolerance.unwrap_or(0.1),
+        );
+        if dir_ok {
+            c_dir_ok += 1;
+        }
         c_scores.push(score);
         if !args.quiet {
             println!(
                 "  CF       {:<34} base={:.3} after={:.3} Δ={:+.3} expect={} score={:.2} {}",
-                c.id, b0.p_yes, b1.p_yes, delta, c.expected_direction, score, pass_mark(dir_ok)
+                c.id,
+                b0.p_yes,
+                b1.p_yes,
+                delta,
+                c.expected_direction,
+                score,
+                pass_mark(dir_ok)
             );
         }
         c_rows.push(serde_json::json!({"id": c.id, "baseline": b0.p_yes, "after": b1.p_yes, "delta": delta, "expected": c.expected_direction, "direction_ok": dir_ok, "score": score}));
     }
     let c_cat = mean(&c_scores);
-    let c_frac_dir = if c_scores.is_empty() { 1.0 } else { c_dir_ok as f64 / c_scores.len() as f64 };
-    let c_pass = c_frac_dir >= rubric.thresholds.counterfactual_direction_min || c_scores.is_empty();
-    categories.push(CategoryScore { name: "counterfactuals".into(), score: c_cat, weight: rubric.weights.counterfactuals, n: c_scores.len(), passed: c_pass });
+    let c_frac_dir = if c_scores.is_empty() {
+        1.0
+    } else {
+        c_dir_ok as f64 / c_scores.len() as f64
+    };
+    let c_pass =
+        c_frac_dir >= rubric.thresholds.counterfactual_direction_min || c_scores.is_empty();
+    categories.push(CategoryScore {
+        name: "counterfactuals".into(),
+        score: c_cat,
+        weight: rubric.weights.counterfactuals,
+        n: c_scores.len(),
+        passed: c_pass,
+    });
     report.insert("counterfactuals".into(), serde_json::json!({"entries": c_rows, "category_score": c_cat, "direction_correct_frac": c_frac_dir, "direction_min": rubric.thresholds.counterfactual_direction_min}));
 
     // ---- headline ----
@@ -261,15 +344,32 @@ async fn run(args: Args) -> i32 {
     for c in &categories {
         println!(
             "  {:<34} score={:.3} weight={:.1} n={} {}",
-            c.name, c.score, c.weight, c.n, pass_mark(c.passed)
+            c.name,
+            c.score,
+            c.weight,
+            c.n,
+            pass_mark(c.passed)
         );
     }
     let usage = client.usage.snapshot();
     println!("  {:-<42}", "");
-    println!("  WEIGHTED HEADLINE = {:.4}   (gate ≥ {:.2})  {}", headline, gate, pass_mark(passed));
-    println!("  sub-thresholds: elections_max_abs_err={:.3} markets_max_brier={:.3} cf_direction={:.2}", e_max_err, m_max_brier, c_frac_dir);
-    println!("  llm: {} calls, {} cache hits, {} retries, ~{}k out tokens",
-        usage.calls, usage.cache_hits, usage.retries, usage.output_tokens / 1000);
+    println!(
+        "  WEIGHTED HEADLINE = {:.4}   (gate ≥ {:.2})  {}",
+        headline,
+        gate,
+        pass_mark(passed)
+    );
+    println!(
+        "  sub-thresholds: elections_max_abs_err={:.3} markets_max_brier={:.3} cf_direction={:.2}",
+        e_max_err, m_max_brier, c_frac_dir
+    );
+    println!(
+        "  llm: {} calls, {} cache hits, {} retries, ~{}k out tokens",
+        usage.calls,
+        usage.cache_hits,
+        usage.retries,
+        usage.output_tokens / 1000
+    );
     println!("===========================================");
 
     // write scorecard artifact
@@ -285,7 +385,11 @@ async fn run(args: Args) -> i32 {
         println!("  scorecard -> {path}");
     }
 
-    if passed { 0 } else { 1 }
+    if passed {
+        0
+    } else {
+        1
+    }
 }
 
 fn market_poll(m: &MarketEntry) -> Poll {

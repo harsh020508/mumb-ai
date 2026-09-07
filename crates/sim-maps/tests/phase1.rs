@@ -1,7 +1,7 @@
 /// Phase 1 integration tests: BLOB round-trip and chunk schema.
 use sim_maps::{
-    db::{ChunkWrite, DbWriter, decompress_u32, decompress_u8},
-    types::{ChunkCoord, Grid, SemanticClass, collision, make_tile_id, tile_id_class},
+    db::{decompress_u32, decompress_u8, ChunkWrite, DbWriter},
+    types::{collision, make_tile_id, tile_id_class, ChunkCoord, Grid, SemanticClass},
 };
 use tempfile::NamedTempFile;
 
@@ -9,7 +9,11 @@ fn make_render(w: u32, h: u32) -> Grid<u32> {
     let mut g = Grid::new(w, h);
     for y in 0..h {
         for x in 0..w {
-            let cls = if (x + y) % 2 == 0 { SemanticClass::Grass } else { SemanticClass::Water };
+            let cls = if (x + y) % 2 == 0 {
+                SemanticClass::Grass
+            } else {
+                SemanticClass::Water
+            };
             g.set(x, y, make_tile_id(cls, 0));
         }
     }
@@ -39,7 +43,7 @@ fn blob_round_trip() {
         .unwrap();
     writer.shutdown().unwrap();
 
-    use rusqlite::{Connection, params};
+    use rusqlite::{params, Connection};
     let conn = Connection::open(tmp.path()).unwrap();
     let (render_blob, collision_blob, dw, dh): (Vec<u8>, Vec<u8>, u32, u32) = conn
         .query_row(
@@ -88,7 +92,9 @@ fn multi_lod_batch() {
     use rusqlite::Connection;
     let conn = Connection::open(tmp.path()).unwrap();
     let count: i64 = conn
-        .query_row("SELECT COUNT(*) FROM chunks WHERE cx=0 AND cy=0", [], |r| r.get(0))
+        .query_row("SELECT COUNT(*) FROM chunks WHERE cx=0 AND cy=0", [], |r| {
+            r.get(0)
+        })
         .unwrap();
     assert_eq!(count, 3, "expected 3 LOD rows");
 }

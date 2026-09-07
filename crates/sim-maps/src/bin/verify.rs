@@ -6,16 +6,15 @@
 /// runs this twice for determinism, and checks the tiles.db hash baseline).
 ///
 /// Usage: cargo run --release --bin verify [-- --db tiles.db]
-
 use anyhow::{Context, Result};
 use clap::Parser;
+use image::{DynamicImage, GenericImageView, RgbImage};
+use rusqlite::{params, Connection};
 use sim_maps::{
     db::decompress_u32,
     render::{self, facade_rect, footprint_rect, render_detail_chunk, BuildingRec, DetailRender},
     types::{tile_id_class, tile_id_variant},
 };
-use image::{DynamicImage, GenericImageView, RgbImage};
-use rusqlite::{params, Connection};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write as _;
 use std::path::PathBuf;
@@ -44,7 +43,10 @@ const GROUND_CLASSES: [(u32, &str); 9] = [
 ];
 
 #[derive(Parser, Debug)]
-#[command(name = "verify", about = "Render test chunks and run beautification checks V1-V8")]
+#[command(
+    name = "verify",
+    about = "Render test chunks and run beautification checks V1-V8"
+)]
 struct Cli {
     #[arg(long, default_value = "tiles.db")]
     db: PathBuf,
@@ -71,9 +73,10 @@ struct Check {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     let home = PathBuf::from(std::env::var("HOME").unwrap_or_default());
-    let palette_path = cli.palette.clone().unwrap_or_else(|| {
-        home.join("Downloads/modernexteriors-win/Palette.png")
-    });
+    let palette_path = cli
+        .palette
+        .clone()
+        .unwrap_or_else(|| home.join("Downloads/modernexteriors-win/Palette.png"));
 
     std::fs::create_dir_all(&cli.out)?;
 
@@ -99,7 +102,10 @@ fn main() -> Result<()> {
         } else {
             (
                 cli.db.clone(),
-                TEST_CHUNKS.iter().map(|&(cx, cy, l)| (cx, cy, l.to_string())).collect(),
+                TEST_CHUNKS
+                    .iter()
+                    .map(|&(cx, cy, l)| (cx, cy, l.to_string()))
+                    .collect(),
                 PathBuf::from("tools/baseline_db.sha256"),
             )
         };
@@ -115,7 +121,9 @@ fn main() -> Result<()> {
         match render_detail_chunk(&conn, &atlas, &facade, *cx, *cy)? {
             Some(dr) => {
                 let path = cli.out.join(format!("{label}_detail.png"));
-                dr.img.save(&path).with_context(|| format!("save {}", path.display()))?;
+                dr.img
+                    .save(&path)
+                    .with_context(|| format!("save {}", path.display()))?;
                 println!(
                     "rendered {label} ({cx},{cy}) -> {} ({}x{} px, {} buildings)",
                     path.display(),
@@ -130,7 +138,11 @@ fn main() -> Result<()> {
     }
 
     let palette = load_palette(&palette_path)?;
-    println!("palette: {} unique colors from {}", palette.len(), palette_path.display());
+    println!(
+        "palette: {} unique colors from {}",
+        palette.len(),
+        palette_path.display()
+    );
 
     let mut checks: Vec<Check> = Vec::new();
     checks.push(check_v1_diversity(&atlas));
@@ -144,7 +156,10 @@ fn main() -> Result<()> {
 
     // Report.
     let mut report = String::new();
-    writeln!(report, "=== SF map beautification verification report ===\n")?;
+    writeln!(
+        report,
+        "=== SF map beautification verification report ===\n"
+    )?;
     let mut all_pass = true;
     for c in &checks {
         let tag = if c.pass { "PASS" } else { "FAIL" };
@@ -153,7 +168,15 @@ fn main() -> Result<()> {
         }
         writeln!(report, "[{tag}] {}: {}", c.id, c.detail)?;
     }
-    writeln!(report, "\nOVERALL: {}", if all_pass { "ALL PASS" } else { "FAILURES PRESENT" })?;
+    writeln!(
+        report,
+        "\nOVERALL: {}",
+        if all_pass {
+            "ALL PASS"
+        } else {
+            "FAILURES PRESENT"
+        }
+    )?;
 
     let report_path = cli.out.join("report.txt");
     std::fs::write(&report_path, &report)?;
@@ -189,7 +212,11 @@ fn check_v1_diversity(atlas: &DynamicImage) -> Check {
             worst.join(", ")
         )
     };
-    Check { id: "V1 autotile-diversity", pass, detail }
+    Check {
+        id: "V1 autotile-diversity",
+        pass,
+        detail,
+    }
 }
 
 /// V2 — building distinctness. The goal spec describes per-pixel connected
@@ -234,7 +261,11 @@ fn check_v2_distinctness(renders: &[(String, DetailRender)]) -> Check {
         }
         None => (false, "no buildings in any test chunk".to_string()),
     };
-    Check { id: "V2 building-distinctness", pass, detail }
+    Check {
+        id: "V2 building-distinctness",
+        pass,
+        detail,
+    }
 }
 
 /// V3 — facade depth: facades drawn below south edge with content, height Tall>Mid>Low.
@@ -276,7 +307,11 @@ fn check_v3_facade_depth(renders: &[(String, DetailRender)]) -> Check {
         "heights(px) Low={lo} Mid={mid} Tall={hi} monotonic={monotonic}; content_ok={content_ok} [{}]",
         content_notes.join(", ")
     );
-    Check { id: "V3 facade-depth", pass, detail }
+    Check {
+        id: "V3 facade-depth",
+        pass,
+        detail,
+    }
 }
 
 /// V4 — no holes: every (class,variant) referenced in the test chunks resolves to
@@ -300,11 +335,18 @@ fn check_v4_holes(conn: &Connection, atlas: &DynamicImage) -> Check {
     }
     let pass = empty.is_empty();
     let detail = if pass {
-        format!("all {} referenced (class,variant) tiles are non-empty", referenced.len())
+        format!(
+            "all {} referenced (class,variant) tiles are non-empty",
+            referenced.len()
+        )
     } else {
         format!("empty atlas tiles referenced: [{}]", empty.join(", "))
     };
-    Check { id: "V4 no-holes", pass, detail }
+    Check {
+        id: "V4 no-holes",
+        pass,
+        detail,
+    }
 }
 
 /// V5 — palette adherence: >=95% of rendered pixels within a small distance of an
@@ -349,13 +391,24 @@ fn check_v6_db_integrity(db: &PathBuf, baseline_path: &PathBuf) -> Check {
     let current = sha256_file(db).unwrap_or_default();
     let pass = !baseline.is_empty() && baseline == current;
     let detail = if pass {
-        format!("tiles.db sha256 matches baseline ({})", &baseline[..baseline.len().min(12)])
+        format!(
+            "tiles.db sha256 matches baseline ({})",
+            &baseline[..baseline.len().min(12)]
+        )
     } else if baseline.is_empty() {
-        format!("no baseline at {} (current={})", baseline_path.display(), short(&current))
+        format!(
+            "no baseline at {} (current={})",
+            baseline_path.display(),
+            short(&current)
+        )
     } else {
         format!("baseline={} current={}", short(&baseline), short(&current))
     };
-    Check { id: "V6 db-integrity", pass, detail }
+    Check {
+        id: "V6 db-integrity",
+        pass,
+        detail,
+    }
 }
 
 /// V7 — determinism: rendering a chunk twice yields byte-identical pixels.
@@ -408,9 +461,14 @@ fn check_v8_format(atlas: &DynamicImage, facade: &DynamicImage) -> Check {
 // ---- helpers ----
 
 fn chunk_render(conn: &Connection, cx: i32, cy: i32) -> Result<(Vec<u8>, u32, u32)> {
-    let mut stmt = conn.prepare("SELECT render, w, h FROM chunks WHERE cx=?1 AND cy=?2 AND lod=0")?;
+    let mut stmt =
+        conn.prepare("SELECT render, w, h FROM chunks WHERE cx=?1 AND cy=?2 AND lod=0")?;
     let r = stmt.query_row(params![cx, cy], |row| {
-        Ok((row.get::<_, Vec<u8>>(0)?, row.get::<_, u32>(1)?, row.get::<_, u32>(2)?))
+        Ok((
+            row.get::<_, Vec<u8>>(0)?,
+            row.get::<_, u32>(1)?,
+            row.get::<_, u32>(2)?,
+        ))
     })?;
     Ok(r)
 }
@@ -526,13 +584,23 @@ fn building_distinctness(dr: &DetailRender, tol: i32) -> (u32, u32) {
             if x + 1 < w {
                 let r = labels[i + 1];
                 if r >= 0 && r != li {
-                    tally(li, r, dr.img.get_pixel(x as u32, y as u32), dr.img.get_pixel(x as u32 + 1, y as u32));
+                    tally(
+                        li,
+                        r,
+                        dr.img.get_pixel(x as u32, y as u32),
+                        dr.img.get_pixel(x as u32 + 1, y as u32),
+                    );
                 }
             }
             if y + 1 < h {
                 let d = labels[i + w];
                 if d >= 0 && d != li {
-                    tally(li, d, dr.img.get_pixel(x as u32, y as u32), dr.img.get_pixel(x as u32, y as u32 + 1));
+                    tally(
+                        li,
+                        d,
+                        dr.img.get_pixel(x as u32, y as u32),
+                        dr.img.get_pixel(x as u32, y as u32 + 1),
+                    );
                 }
             }
         }
@@ -572,7 +640,9 @@ struct UnionFind {
 }
 impl UnionFind {
     fn new(n: usize) -> Self {
-        Self { parent: (0..n as u32).collect() }
+        Self {
+            parent: (0..n as u32).collect(),
+        }
     }
     fn find(&mut self, x: usize) -> usize {
         let mut r = x;

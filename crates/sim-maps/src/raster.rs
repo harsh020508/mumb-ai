@@ -5,9 +5,9 @@
 /// Painting order matches the precedence chain:
 ///   Grass → ParkGrass → Path/Sidewalk → Road → BuildingFloor
 ///   → [BuildingWall detection] → Water (including coastline)
-
-use geo::algorithm::{bounding_rect::BoundingRect, contains::Contains,
-                     euclidean_distance::EuclideanDistance};
+use geo::algorithm::{
+    bounding_rect::BoundingRect, contains::Contains, euclidean_distance::EuclideanDistance,
+};
 use geo::{Coord, LineString, Point, Polygon};
 
 use crate::osm::{BuildingTier, FeatureIndex, RoadFeature};
@@ -28,7 +28,13 @@ pub fn rasterize_semantic_grid(
     meters_per_cell: f64,
 ) -> Grid<SemanticClass> {
     let mut grid = Grid::filled(width, height, SemanticClass::Grass);
-    let ctx = Ctx { origin_x, origin_y, width, height, mpc: meters_per_cell };
+    let ctx = Ctx {
+        origin_x,
+        origin_y,
+        width,
+        height,
+        mpc: meters_per_cell,
+    };
 
     // 1. Parks (low precedence).
     for poly in &features.park_polys {
@@ -48,8 +54,8 @@ pub fn rasterize_semantic_grid(
     // 4. Buildings (floor — walls detected after).
     for bldg in &features.buildings {
         let class = match bldg.tier {
-            BuildingTier::Low  => SemanticClass::BuildingFloor,
-            BuildingTier::Mid  => SemanticClass::BuildingMid,
+            BuildingTier::Low => SemanticClass::BuildingFloor,
+            BuildingTier::Mid => SemanticClass::BuildingMid,
             BuildingTier::Tall => SemanticClass::BuildingTall,
         };
         paint_polygon(&mut grid, &bldg.poly, class, &ctx);
@@ -95,16 +101,22 @@ impl Ctx {
     /// UTM x → column range (clamped).
     fn col_range(&self, x_min: f64, x_max: f64) -> (u32, u32) {
         let lo = ((x_min - self.origin_x) / self.mpc).floor() as i64;
-        let hi = ((x_max - self.origin_x) / self.mpc).ceil()  as i64;
-        (lo.max(0) as u32, hi.min(self.width as i64 - 1).max(0) as u32)
+        let hi = ((x_max - self.origin_x) / self.mpc).ceil() as i64;
+        (
+            lo.max(0) as u32,
+            hi.min(self.width as i64 - 1).max(0) as u32,
+        )
     }
 
     /// UTM y → row range (clamped). Larger y → smaller row.
     fn row_range(&self, y_min: f64, y_max: f64) -> (u32, u32) {
         let top = self.origin_y + self.height as f64 * self.mpc;
         let lo = ((top - y_max) / self.mpc).floor() as i64;
-        let hi = ((top - y_min) / self.mpc).ceil()  as i64;
-        (lo.max(0) as u32, hi.min(self.height as i64 - 1).max(0) as u32)
+        let hi = ((top - y_min) / self.mpc).ceil() as i64;
+        (
+            lo.max(0) as u32,
+            hi.min(self.height as i64 - 1).max(0) as u32,
+        )
     }
 }
 
@@ -159,9 +171,12 @@ pub fn detect_building_walls(grid: &mut Grid<SemanticClass>) {
 
     for row in 0..h {
         for col in 0..w {
-            if !matches!(*grid.get(col, row),
-                SemanticClass::BuildingFloor | SemanticClass::BuildingMid | SemanticClass::BuildingTall)
-            {
+            if !matches!(
+                *grid.get(col, row),
+                SemanticClass::BuildingFloor
+                    | SemanticClass::BuildingMid
+                    | SemanticClass::BuildingTall
+            ) {
                 continue;
             }
             let is_boundary = [(0i32, -1i32), (0, 1), (-1, 0), (1, 0)]
@@ -172,8 +187,12 @@ pub fn detect_building_walls(grid: &mut Grid<SemanticClass>) {
                     if nc < 0 || nr < 0 || nc >= w as i32 || nr >= h as i32 {
                         true
                     } else {
-                        !matches!(*grid.get(nc as u32, nr as u32),
-                            SemanticClass::BuildingFloor | SemanticClass::BuildingMid | SemanticClass::BuildingTall)
+                        !matches!(
+                            *grid.get(nc as u32, nr as u32),
+                            SemanticClass::BuildingFloor
+                                | SemanticClass::BuildingMid
+                                | SemanticClass::BuildingTall
+                        )
                     }
                 });
             if is_boundary {
@@ -207,7 +226,10 @@ fn detect_shoreline(grid: &mut Grid<SemanticClass>) {
                 .any(|&(dc, dr)| {
                     let nc = col as i32 + dc;
                     let nr = row as i32 + dr;
-                    nc >= 0 && nr >= 0 && nc < w as i32 && nr < h as i32
+                    nc >= 0
+                        && nr >= 0
+                        && nc < w as i32
+                        && nr < h as i32
                         && *grid.get(nc as u32, nr as u32) == SemanticClass::Water
                 });
             if touches_water {
