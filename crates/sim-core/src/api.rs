@@ -116,7 +116,7 @@ async fn auth_and_rate_limit(
     let is_public = path == "/health"
         || path == "/ready"
         || path == "/"
-        || path.starts_with("/assets/")
+        || path.starts_with("/assets/") || path.starts_with("/src/")
         || path == "/favicon.ico"
         || path == "/index.html";
 

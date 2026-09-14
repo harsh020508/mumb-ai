@@ -187,7 +187,7 @@ impl ModelClient {
         let anthropic_key = std::env::var("ANTHROPIC_API_KEY").unwrap_or_default();
         let anthropic_url = std::env::var("ANTHROPIC_API_URL")
             .unwrap_or_else(|_| "https://api.anthropic.com/v1/messages".to_string());
-        let omniroute_key = std::env::var("OMNIROUTE_API_KEY").unwrap_or_default();
+        let omniroute_key = std::env::var("OMNIROUTE_API_KEY").or_else(|_| std::env::var("MODEL_API_KEY")).unwrap_or_default();
         let omniroute_url = std::env::var("OMNIROUTE_API_URL")
             .or_else(|_| std::env::var("OMNIROUTE_URL"))
             .unwrap_or_else(|_| {
