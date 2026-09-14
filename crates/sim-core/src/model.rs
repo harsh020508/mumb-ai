@@ -2,10 +2,10 @@
 //!
 //! Three deployments share one base URL `…/openai/v1`:
 //!   - grok-4.3  -> POST /chat/completions  body {model, messages, max_tokens}
-//!                 read choices[0].message.content
+//!     read choices[0].message.content
 //!   - gpt-4o    -> POST /responses         body {model, input, max_output_tokens}
 //!   - gpt-5.5   -> POST /responses          (reasoning model)
-//!                 read the output[] element whose type == "message", .content[0].text
+//!     read the output[] element whose type == "message", .content[0].text
 //!
 //! Auth is `Authorization: Bearer $MODEL_API_KEY` (verified live; falls back to
 //! the `api-key:` header on a 401). Concurrency is bounded by a semaphore; 429/5xx

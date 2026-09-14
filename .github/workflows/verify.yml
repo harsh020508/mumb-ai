@@ -15,6 +15,12 @@ jobs:
         with:
           components: clippy, rustfmt
 
+      - name: Show Rust toolchain
+        run: |
+          rustc --version --verbose
+          cargo --version
+          rustup show
+
       - name: Cache cargo
         uses: actions/cache@v4
         with:
@@ -27,16 +33,16 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Check code formatting
-        run: cargo fmt --check
+        run: cargo fmt --all -- --check
 
       - name: Run Clippy lints
-        run: cargo clippy --workspace -- -D warnings
+        run: cargo clippy --workspace --all-targets -- -D warnings
 
       - name: Run unit & integration tests
-        run: cargo test --package simfrancisco
+        run: cargo test --workspace
 
       - name: Build release binaries
-        run: cargo build --release --package simfrancisco
+        run: cargo build --release --workspace
 
       - name: Setup Python
         uses: actions/setup-python@v5

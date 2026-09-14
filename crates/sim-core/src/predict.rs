@@ -145,8 +145,8 @@ fn cluster_agents(pop: &Population, max_clusters: usize) -> Vec<Cluster> {
         }
         if map.len() <= max_clusters || level == 3 {
             let mut clusters: Vec<Cluster> = map
-                .into_iter()
-                .map(|(_key, member_idx)| Cluster {
+                .into_values()
+                .map(|member_idx| Cluster {
                     rep_idx: member_idx[0],
                     member_idx,
                 })

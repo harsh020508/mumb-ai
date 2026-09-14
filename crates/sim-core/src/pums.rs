@@ -90,7 +90,7 @@ impl PumsRecord {
             2 => "black",
             6 => "asian",
             7 => "pacific",
-            3 | 4 | 5 => "native",
+            3..=5 => "native",
             _ => "other_multi",
         }
     }

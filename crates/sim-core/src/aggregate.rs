@@ -37,9 +37,9 @@ pub fn weighted_distribution(answers: &[WeightedAnswer], n_options: usize) -> Ve
     let mut den = 0.0f64;
     for a in answers {
         den += a.weight;
-        for k in 0..n_options {
+        for (k, val) in num.iter_mut().enumerate().take(n_options) {
             let p = a.probs.get(k).copied().unwrap_or(0.0);
-            num[k] += a.weight * p;
+            *val += a.weight * p;
         }
     }
     if den <= 0.0 {

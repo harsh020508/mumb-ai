@@ -242,6 +242,7 @@ pub fn render_detail_chunk(
 
 /// Draw one building: composed MX facade below the south edge, then the rooftop.
 /// `roof` is the greedy-assigned roof colour; the wall colour comes from the hash.
+#[allow(clippy::too_many_arguments)]
 pub fn draw_building(
     img: &mut RgbImage,
     facade_atlas: &DynamicImage,
@@ -422,6 +423,7 @@ fn scale(v: u8, f: f32) -> u8 {
 /// Scatter trees on Grass/ParkGrass cells using a deterministic hash, drawn
 /// north-to-south so southern trees overlap northern ones. Each tree's trunk is
 /// anchored to the bottom of its cell and the 96×128 sprite extends up/out.
+#[allow(clippy::too_many_arguments)]
 fn draw_trees(
     img: &mut RgbImage,
     props: &DynamicImage,
@@ -509,6 +511,7 @@ fn tree_hash(cx: i32, cy: i32, col: u32, row: u32) -> u64 {
 /// tiled to `width_px`. The wall colour row is `wall`. `slope` shears the base:
 /// downhill tile-columns are drawn taller so the ground line follows a diagonal
 /// road (the cornice stays flush with the roof at the top).
+#[allow(clippy::too_many_arguments)]
 fn draw_facade(
     img: &mut RgbImage,
     fa: &DynamicImage,

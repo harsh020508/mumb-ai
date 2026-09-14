@@ -50,7 +50,7 @@ impl RateLimiter {
         let now = std::time::Instant::now();
         let mut map = self.requests.lock().unwrap_or_else(|p| p.into_inner());
         let window = std::time::Duration::from_secs(60);
-        let timestamps = map.entry(client_id.to_string()).or_insert_with(Vec::new);
+        let timestamps = map.entry(client_id.to_string()).or_default();
         timestamps.retain(|t| now.duration_since(*t) < window);
         if timestamps.len() >= self.max_per_minute {
             false
@@ -1154,9 +1154,9 @@ fn find_branch(st: &AppState, bid: &str) -> Option<(Arc<SimContext>, Arc<BranchS
     });
     let _ = sim_id;
     // sim_id is everything up to the last ':'
-    let sim_id = match bid.rfind(':') {
-        Some(i) => bid[..i].to_string(),
-        None => return None,
+    let sim_id = {
+        let i = bid.rfind(':')?;
+        bid[..i].to_string()
     };
     let ctx = lock_mutex(&st.sims).get(&sim_id).cloned()?;
     let bs = lock_mutex(&ctx.branches).get(bid).cloned()?;
@@ -1301,7 +1301,7 @@ fn add_marginal(m: &mut HashMap<String, HashMap<String, f64>>, var: &str, level:
         .or_insert(0.0) += w;
 }
 fn normalize(m: &mut HashMap<String, HashMap<String, f64>>) {
-    for (_, dist) in m.iter_mut() {
+    for dist in m.values_mut() {
         let total: f64 = dist.values().sum();
         if total > 0.0 {
             for v in dist.values_mut() {
@@ -1457,7 +1457,7 @@ pub fn build_state(
     if let Ok(entries) = std::fs::read_dir("data/cities") {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().map_or(false, |ext| ext == "toml") {
+            if path.extension().is_some_and(|ext| ext == "toml") {
                 if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
                     slugs.push(stem.to_string());
                 }

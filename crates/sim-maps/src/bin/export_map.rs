@@ -432,6 +432,7 @@ fn blit_atlas_tile(
 /// Render the entire city: render each chunk via the shared renderer (32px/cell
 /// with MX buildings + facades + trees), downscale it to `scale` px/cell, and
 /// stitch into one big PNG. cy=0 is south, so chunk rows are flipped vertically.
+#[allow(clippy::too_many_arguments)]
 fn render_full_city(
     conn: &Connection,
     atlas: &DynamicImage,

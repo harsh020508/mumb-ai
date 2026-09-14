@@ -365,6 +365,7 @@ pub fn make_value_vector(
     v
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_persona_prose(
     rec: &PumsRecord,
     name: &str,

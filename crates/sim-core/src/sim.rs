@@ -234,7 +234,7 @@ impl SimEngine {
         }
         let cap = 12usize; // bound conversations per tick
         let mut made = 0;
-        for (_, group) in by_cell.iter() {
+        for group in by_cell.values() {
             if made >= cap {
                 break;
             }
