@@ -10,8 +10,8 @@ use geo::algorithm::bounding_rect::BoundingRect;
 ///      building sits on a flat pad rather than following the hillside.
 ///   2. Cliff / stairs classification — any cell whose max-absolute-rise to
 ///      a cardinal neighbor exceeds `walkable_threshold_m` is reclassified:
-///        Road / Path / Sidewalk  →  Stairs   (steep but walkable)
-///        everything else (except Water / Building / Stairs) → CliffFace
+///      Road / Path / Sidewalk  →  Stairs   (steep but walkable)
+///      everything else (except Water / Building / Stairs) → CliffFace
 ///
 /// Water cells, building cells, and already-classified cliff/stairs cells
 /// are never overridden here.

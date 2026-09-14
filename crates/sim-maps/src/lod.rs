@@ -18,8 +18,8 @@ use crate::types::{Grid, SemanticClass};
 /// survive aggressive downsampling.
 pub fn downsample_semantic(grid: &Grid<SemanticClass>, factor: u32) -> Grid<SemanticClass> {
     assert!(factor >= 1, "downsample factor must be ≥ 1");
-    let out_w = (grid.width + factor - 1) / factor;
-    let out_h = (grid.height + factor - 1) / factor;
+    let out_w = grid.width.div_ceil(factor);
+    let out_h = grid.height.div_ceil(factor);
 
     Grid::from_fn(out_w, out_h, |oc, or_| {
         let x0 = oc * factor;
@@ -36,8 +36,8 @@ pub fn downsample_semantic(grid: &Grid<SemanticClass>, factor: u32) -> Grid<Sema
 /// a single BLOCKED cell (255) keeps the whole LOD block impassable.
 pub fn downsample_collision(grid: &Grid<u8>, factor: u32) -> Grid<u8> {
     assert!(factor >= 1, "downsample factor must be ≥ 1");
-    let out_w = (grid.width + factor - 1) / factor;
-    let out_h = (grid.height + factor - 1) / factor;
+    let out_w = grid.width.div_ceil(factor);
+    let out_h = grid.height.div_ceil(factor);
 
     Grid::from_fn(out_w, out_h, |oc, or_| {
         let x0 = oc * factor;

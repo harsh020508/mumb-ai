@@ -242,7 +242,7 @@ pub fn decompress_u32(blob: &[u8], expected_len: usize) -> Result<Vec<u32>> {
         bytes.len()
     );
     Ok(bytes
-        .chunks_exact(4)
+        .as_chunks::<4>().0.iter()
         .map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
         .collect())
 }

@@ -42,7 +42,7 @@ pub fn semantic_to_collision(
             SemanticClass::ParkGrass | SemanticClass::Shoreline => collision::PARK_COST,
             _ => collision::GRASS_COST,
         };
-        if base >= collision::BLOCKED {
+        if base == collision::BLOCKED {
             base
         } else {
             let m = topo::slope_cost_modifier(*rise.get(col, row), walkable_threshold);
@@ -63,6 +63,7 @@ pub fn semantic_to_collision_flat(
 /// Full LOD-0 chunk processing: topography + render + collision.
 ///
 /// Returns `(render, collision)` for LOD 0.
+#[allow(clippy::too_many_arguments)]
 pub fn process_chunk_lod0(
     semantic: &mut Grid<SemanticClass>,
     elevation: &mut Grid<f32>,

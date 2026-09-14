@@ -52,7 +52,7 @@ pub fn neighbor_mask(grid: &Grid<SemanticClass>, col: u32, row: u32) -> u8 {
 /// A diagonal is only meaningful when the two flanking edge cells are also
 /// the same class; otherwise it is cleared.
 pub fn suppress_corners(raw: u8) -> u8 {
-    let n = (raw >> 0) & 1;
+    let n = raw & 1;
     let ne = (raw >> 1) & 1;
     let e = (raw >> 2) & 1;
     let se = (raw >> 3) & 1;
