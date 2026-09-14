@@ -310,7 +310,7 @@ impl ModelClient {
                 messages.push(json!({"role":"user","content":user}));
                 (
                     format!("{}/chat/completions", self.base),
-                    json!({ "model": model.id(), "messages": messages, "max_tokens": max_tokens.max(16) }),
+                    json!({ "model": std::env::var("OMNIROUTE_MODEL").unwrap_or_else(|_| model.id().to_string()), "stream": false, "messages": messages, "max_tokens": max_tokens.max(16) }),
                 )
             }
             Provider::Omniroute => {
@@ -320,8 +320,8 @@ impl ModelClient {
                 }
                 messages.push(json!({"role":"user","content":user}));
                 (
-                    format!("{}/chat/completions", self.omniroute_url),
-                    json!({ "model": model.id(), "messages": messages, "max_tokens": max_tokens.max(16) }),
+                    format!("{}/chat/completions", self.omniroute_url.trim_end_matches('/')),
+                    json!({ "model": std::env::var("OMNIROUTE_MODEL").unwrap_or_else(|_| model.id().to_string()), "stream": false, "messages": messages, "max_tokens": max_tokens.max(16) }),
                 )
             }
             Provider::Anthropic => (

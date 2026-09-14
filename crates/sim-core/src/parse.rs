@@ -66,10 +66,13 @@ or {{\"supported\":false,\"reason\":\"...\",\"examples\":[\"...\",\"...\"]}}"
     let user = format!("City: {city}\nUser question: {raw}");
     match client.complete(model, &sys, &user, 700).await {
         Ok(text) => from_json(&text, city),
-        Err(_) => ParsedQuestion::unsupported(
-            "The router could not reach the model to parse this question.",
-            default_examples(city),
-        ),
+        Err(e) => {
+            tracing::error!("parse_question failed: {e:?}");
+            ParsedQuestion::unsupported(
+                &format!("The router could not reach the model: {e}"),
+                default_examples(city),
+            )
+        },
     }
 }
 
