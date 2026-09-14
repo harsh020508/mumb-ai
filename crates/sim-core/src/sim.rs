@@ -125,14 +125,14 @@ impl SimEngine {
     /// Pick a destination cell for an agent based on the time of day + its schedule.
     fn destination_for(&self, idx: usize) -> Cell {
         let hour = self.hour_of_day();
-        let a = &self.pop.agents[idx];
+        let default_home = self.state.agents.get(idx).map(|a| a.pos).unwrap_or(Cell { x: 0, y: 0 }); let a = self.pop.agents.get(idx); let home = a.map(|ag| ag.home).unwrap_or(default_home); let work = a.and_then(|ag| ag.work);
         match hour {
-            9..=16 => a.work.unwrap_or(a.home),
+            9..=16 => work.unwrap_or(home),
             17..=21 => {
                 // leisure: wander near home/neighborhood
-                a.home
+                home
             }
-            _ => a.home,
+            _ => home,
         }
     }
 
@@ -143,7 +143,7 @@ impl SimEngine {
         }
         match hour {
             9..=16 => {
-                if self.pop.agents[idx].work.is_some() {
+                if self.pop.agents.get(idx).and_then(|ag| ag.work).is_some() {
                     "at work".into()
                 } else {
                     "running errands".into()
@@ -246,7 +246,7 @@ impl SimEngine {
             if vd > 0.6 && self.rng.gen::<f64>() < 0.5 {
                 // a debate nudges value vectors slightly toward each other
                 nudge_values(&mut self.state.agents, i, j, 0.03);
-                let line = debate_line(&self.pop.agents[i].values);
+                let line = if let Some(ag) = self.pop.agents.get(i) { debate_line(&ag.values) } else { debate_line(&self.state.agents[i].values) };
                 events.push(SimEvent::AgentSaid {
                     id: self.state.agents[i].id,
                     text: line,
